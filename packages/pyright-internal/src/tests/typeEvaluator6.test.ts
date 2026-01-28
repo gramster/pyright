@@ -556,14 +556,6 @@ test('MatchMapping2', () => {
 
     configOptions.defaultPythonVersion = pythonVersion3_10;
     const analysisResults = TestUtils.typeAnalyzeSampleFiles(['matchMapping2.py'], configOptions);
-    
-    // Temporarily log errors
-    console.log('=== Errors in matchMapping2.py ===');
-    analysisResults[0].errors.forEach((err: any) => {
-        console.log(`Line ${err.range.start.line + 1}: ${err.message}`);
-    });
-    console.log('================================');
-    
     TestUtils.validateResults(analysisResults, 0);
 });
 

@@ -1336,6 +1336,11 @@ export class Parser {
     private _parsePatternMapping(firstToken: Token): PatternMappingNode | ErrorNode {
         const itemList = this._parseExpressionListGeneric(() => this._parsePatternMappingItem());
 
+        // Return early if there was a parse error.
+        if (itemList.parseError) {
+            return itemList.parseError;
+        }
+
         // Empty mapping patterns (e.g., `{}`) are valid and match any mapping.
         if (itemList.list.length > 0) {
             // Verify there's at most one ** entry.
