@@ -551,6 +551,22 @@ test('MatchMapping1', () => {
     TestUtils.validateResults(analysisResults, 2);
 });
 
+test('MatchMapping2', () => {
+    const configOptions = new ConfigOptions(Uri.empty());
+
+    configOptions.defaultPythonVersion = pythonVersion3_10;
+    const analysisResults = TestUtils.typeAnalyzeSampleFiles(['matchMapping2.py'], configOptions);
+    
+    // Temporarily log errors
+    console.log('=== Errors in matchMapping2.py ===');
+    analysisResults[0].errors.forEach((err: any) => {
+        console.log(`Line ${err.range.start.line + 1}: ${err.message}`);
+    });
+    console.log('================================');
+    
+    TestUtils.validateResults(analysisResults, 0);
+});
+
 test('MatchLiteral1', () => {
     const configOptions = new ConfigOptions(Uri.empty());
 
