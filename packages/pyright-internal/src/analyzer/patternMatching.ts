@@ -458,10 +458,12 @@ function narrowTypeBasedOnMappingPattern(
     type = transformPossibleRecursiveTypeAlias(type);
 
     if (!isPositiveTest) {
-        // Handle the case where the pattern consists only of a "**x" entry.
+        // Handle the case where the pattern consists only of a "**x" entry or is empty.
+        // Both have identical negative narrowing semantics per PEP 634.
         if (
-            pattern.d.entries.length === 1 &&
-            pattern.d.entries[0].nodeType === ParseNodeType.PatternMappingExpandEntry
+            pattern.d.entries.length === 0 ||
+            (pattern.d.entries.length === 1 &&
+                pattern.d.entries[0].nodeType === ParseNodeType.PatternMappingExpandEntry)
         ) {
             const mappingInfo = getMappingPatternInfo(evaluator, type, pattern);
             return combineTypes(mappingInfo.filter((m) => !m.isDefinitelyMapping).map((m) => m.subtype));
@@ -1304,6 +1306,18 @@ function getMappingPatternInfo(evaluator: TypeEvaluator, type: Type, node: Patte
 
             const mappingType = evaluator.getTypingType(node, 'Mapping');
             if (!mappingType || !isInstantiableClass(mappingType)) {
+                // If we can't get the Mapping type, we can't determine if this is a mapping.
+                // Add it as unknown to avoid losing the subtype.
+                // TODO: Add test coverage for missing-typeshed fallback.
+                mappingInfo.push({
+                    subtype,
+                    isDefinitelyMapping: false,
+                    isDefinitelyNotMapping: false,
+                    dictTypeArgs: {
+                        key: UnknownType.create(),
+                        value: UnknownType.create(),
+                    },
+                });
                 return;
             }
             const mappingObject = ClassType.cloneAsInstance(mappingType);
