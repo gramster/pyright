@@ -55,8 +55,19 @@ def func3(val: str | None):
 
 
 def func4(val: int | None):
-    # After this guard, val is known to be truthy (not None).
+    # After this guard, val is known to be not None (but could still be 0, which is falsy).
     if val is None:
+        return
+    
+    # The else branch is still reachable since val could be 0 (falsy).
+    # This test verifies that we don't over-narrow. The type should be int | Literal[0].
+    ts1: int = val if val else 0
+    assert_type(val if val else 0, int)
+
+
+def func5(val: int | None):
+    # After this guard, val is known to be truthy (not None and not 0).
+    if not val:
         return
     
     # The else branch is unreachable since val is known to be truthy.
@@ -64,7 +75,7 @@ def func4(val: int | None):
     assert_type(val if val else 0, int)
 
 
-def func5(val: list[int] | None):
+def func6(val: list[int] | None):
     # After this guard, val is known to be not None.
     if val is None:
         return
