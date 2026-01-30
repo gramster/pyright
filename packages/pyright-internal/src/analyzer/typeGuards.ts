@@ -81,7 +81,6 @@ import {
     isLiteralLikeType,
     isLiteralType,
     isLiteralTypeOrUnion,
-    isMaybeDescriptorInstance,
     isMetaclassInstance,
     isNoneInstance,
     isNoneTypeClass,
@@ -2461,17 +2460,42 @@ function narrowTypeForDiscriminatedFieldNoneComparison(
         }
 
         if (memberInfo && memberInfo.isTypeDeclared) {
+            // Check the declared type to see if it's a descriptor or property.
+            // We need to check this before calling getTypeOfMember, which applies
+            // descriptor resolution and returns the result type.
+            const declaredType = evaluator.getDeclaredTypeOfSymbol(memberInfo.symbol)?.type;
+            if (declaredType) {
+                // Check if any subtype of the declared type is a descriptor or property.
+                let isDescriptorOrProperty = false;
+                doForEachSubtype(declaredType, (declaredSubtype) => {
+                    if (isProperty(declaredSubtype)) {
+                        isDescriptorOrProperty = true;
+                    } else if (isClassInstance(declaredSubtype)) {
+                        // Check if this class instance has __get__ (including inherited)
+                        const getMember = lookUpObjectMember(declaredSubtype, '__get__');
+                        if (getMember) {
+                            isDescriptorOrProperty = true;
+                        }
+                    } else if (isInstantiableClass(declaredSubtype)) {
+                        // Check if this class has __get__ (including inherited)
+                        const getMember = lookUpClassMember(declaredSubtype, '__get__');
+                        if (getMember) {
+                            isDescriptorOrProperty = true;
+                        }
+                    }
+                });
+
+                if (isDescriptorOrProperty) {
+                    return subtype;
+                }
+            }
+
             const memberType = evaluator.makeTopLevelTypeVarsConcrete(evaluator.getTypeOfMember(memberInfo));
             let canNarrow = true;
 
             if (isPositiveTest) {
                 doForEachSubtype(memberType, (memberSubtype) => {
                     memberSubtype = evaluator.makeTopLevelTypeVarsConcrete(memberSubtype);
-
-                    // Don't attempt to narrow if the member is a descriptor or property.
-                    if (isProperty(memberSubtype) || isMaybeDescriptorInstance(memberSubtype)) {
-                        canNarrow = false;
-                    }
 
                     if (isAnyOrUnknown(memberSubtype) || isNoneInstance(memberSubtype) || isNever(memberSubtype)) {
                         canNarrow = false;
