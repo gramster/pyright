@@ -57,3 +57,27 @@ def func3(x: Literal[0, 3, "hi"] | MISSING) -> None:
 
 t1 = type(MISSING)
 reveal_type(t1, expected_text="type[MISSING]")
+
+
+# Test narrowing with dataclass fields
+from dataclasses import dataclass
+
+
+@dataclass
+class Foo:
+    name: str | MISSING = MISSING
+
+
+foo = Foo()
+
+reveal_type(foo.name, expected_text="str | MISSING")
+
+if foo.name is MISSING:
+    reveal_type(foo.name, expected_text="MISSING")
+else:
+    reveal_type(foo.name, expected_text="str")
+
+if foo.name is not MISSING:
+    reveal_type(foo.name, expected_text="str")
+else:
+    reveal_type(foo.name, expected_text="MISSING")
