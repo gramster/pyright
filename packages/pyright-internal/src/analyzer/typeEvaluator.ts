@@ -5630,6 +5630,11 @@ export function createTypeEvaluator(
 
         // Fix for Sentinel narrowing regression: For dataclass instance members, if the retrieved
         // type contains Unknown but should contain a Sentinel based on the declared type, fix it.
+        // When a dataclass field has an explicit type annotation (e.g., `str | MISSING`), we trust
+        // the declared type completely. Any Unknown in the retrieved type is erroneous and likely
+        // resulted from inappropriate application of parameter default value inference logic.
+        // In this case, we replace the entire retrieved type with the declared type to ensure
+        // Sentinel types are preserved for narrowing.
         if (isClassInstance(baseTypeResult.type) && ClassType.isDataClass(baseTypeResult.type)) {
             if (typeResult.type && isUnion(typeResult.type)) {
                 const memberName = node.d.member.d.value;
