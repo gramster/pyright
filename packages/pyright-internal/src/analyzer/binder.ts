@@ -1238,13 +1238,14 @@ export class Binder extends ParseTreeWalker {
         // Determine if this loop is guaranteed to execute at least once
         const isGuaranteedToExecute = this._isNonEmptyListOrTupleLiteral(node.d.iterableExpr);
 
-        this._addAntecedent(preForLabel, this._currentFlowNode!);
-        this._currentFlowNode = preForLabel;
-        
-        // Only add the zero-iteration path if the loop is not guaranteed to execute
         if (!isGuaranteedToExecute) {
-            this._addAntecedent(preElseLabel, this._currentFlowNode);
+            // For potentially-empty iterables, flow goes to preForLabel (entry check)
+            this._addAntecedent(preForLabel, this._currentFlowNode!);
+            this._currentFlowNode = preForLabel;
+            this._addAntecedent(preElseLabel, this._currentFlowNode); // Zero-iteration path
         }
+        // For non-empty literals, we do NOT add Entry -> preForLabel
+        // The current flow continues directly to the loop body
         
         const targetExpressions = this._trackCodeFlowExpressions(() => {
             this._createAssignmentTargetFlowNodes(node.d.targetExpr, /* walkTargets */ true, /* unbound */ false);
@@ -1252,13 +1253,18 @@ export class Binder extends ParseTreeWalker {
 
         this._bindLoopStatement(preForLabel, postForLabel, () => {
             this.walk(node.d.forSuite);
-            this._addAntecedent(preForLabel, this._currentFlowNode!);
+            this._addAntecedent(preForLabel, this._currentFlowNode!); // Back-edge
 
             // Add any target expressions since they are modified in the loop.
             targetExpressions.forEach((value) => {
                 this._currentScopeCodeFlowExpressions?.add(value);
             });
         });
+
+        // For non-empty literals, add the exit path from preForLabel after the loop body
+        if (isGuaranteedToExecute) {
+            this._addAntecedent(preElseLabel, preForLabel);
+        }
 
         this._currentFlowNode = this._finishFlowLabel(preElseLabel);
         if (node.d.elseSuite) {
