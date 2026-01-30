@@ -1239,13 +1239,15 @@ export class Binder extends ParseTreeWalker {
         const isGuaranteedToExecute = this._isNonEmptyListOrTupleLiteral(node.d.iterableExpr);
 
         if (!isGuaranteedToExecute) {
-            // For potentially-empty iterables, flow goes to preForLabel (entry check)
+            // For potentially-empty iterables, add entry edge to preForLabel
             this._addAntecedent(preForLabel, this._currentFlowNode!);
             this._currentFlowNode = preForLabel;
             this._addAntecedent(preElseLabel, this._currentFlowNode); // Zero-iteration path
+        } else {
+            // For non-empty literals, current flow goes directly to loop body
+            // preForLabel will only be reached via back-edge
+            this._currentFlowNode = this._currentFlowNode; // Keep current flow (entry flows to loop body)
         }
-        // For non-empty literals, we do NOT add Entry -> preForLabel
-        // The current flow continues directly to the loop body
         
         const targetExpressions = this._trackCodeFlowExpressions(() => {
             this._createAssignmentTargetFlowNodes(node.d.targetExpr, /* walkTargets */ true, /* unbound */ false);
@@ -1261,7 +1263,8 @@ export class Binder extends ParseTreeWalker {
             });
         });
 
-        // For non-empty literals, add the exit path from preForLabel after the loop body
+        // For non-empty literals, ensure preElseLabel is reachable by adding preForLabel as antecedent
+        // This allows the loop to exit after one or more iterations (but not zero iterations)
         if (isGuaranteedToExecute) {
             this._addAntecedent(preElseLabel, preForLabel);
         }
