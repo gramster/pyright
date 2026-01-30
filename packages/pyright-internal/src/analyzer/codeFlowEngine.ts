@@ -41,7 +41,7 @@ import { isMatchingExpression, isPartialMatchingExpression, printExpression } fr
 import { getPatternSubtypeNarrowingCallback } from './patternMatching';
 import { SpeculativeTypeTracker } from './typeCacheUtils';
 import { narrowForKeyAssignment } from './typedDicts';
-import { EvalFlags, Reachability, TypeEvaluator, TypeResult } from './typeEvaluatorTypes';
+import { EvalFlags, maxSubtypesForInferredType, Reachability, TypeEvaluator, TypeResult } from './typeEvaluatorTypes';
 import { getTypeNarrowingCallback } from './typeGuards';
 import {
     ClassType,
@@ -363,7 +363,7 @@ export function getCodeFlowEngine(
                         }
                     });
 
-                    combinedType = typesToCombine.length > 0 ? combineTypes(typesToCombine) : undefined;
+                    combinedType = typesToCombine.length > 0 ? combineTypes(typesToCombine, { maxSubtypeCount: maxSubtypesForInferredType }) : undefined;
                 }
 
                 cachedEntry.type = combinedType;
@@ -420,7 +420,7 @@ export function getCodeFlowEngine(
                     }
                 });
 
-                return combineTypes(typesToCombine);
+                return combineTypes(typesToCombine, { maxSubtypeCount: maxSubtypesForInferredType });
             }
 
             function evaluateAssignmentFlowNode(flowNode: FlowAssignment): TypeResult | undefined {
@@ -958,7 +958,7 @@ export function getCodeFlowEngine(
                     }
                 }
 
-                const effectiveType = typesToCombine.length > 0 ? combineTypes(typesToCombine) : undefined;
+                const effectiveType = typesToCombine.length > 0 ? combineTypes(typesToCombine, { maxSubtypeCount: maxSubtypesForInferredType }) : undefined;
 
                 return setCacheEntry(branchNode, effectiveType, sawIncomplete);
             }
