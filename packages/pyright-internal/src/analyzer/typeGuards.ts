@@ -81,7 +81,6 @@ import {
     isLiteralLikeType,
     isLiteralType,
     isLiteralTypeOrUnion,
-    isMaybeDescriptorInstance,
     isMetaclassInstance,
     isNoneInstance,
     isNoneTypeClass,
