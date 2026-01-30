@@ -1497,8 +1497,10 @@ function getSequencePatternInfo(
                         }
 
                         // If the pattern has no star entry but the lengths match exactly,
-                        // and the tuple has an unbounded entry, the unbounded entry will
-                        // match exactly the corresponding pattern position.
+                        // and the tuple still has an unbounded entry (not removed), the
+                        // unbounded entry will match exactly the corresponding pattern position.
+                        // Note: When removedIndeterminate is true, tupleIndeterminateIndex is -1,
+                        // so this block only applies when the unbounded entry is still present.
                         if (
                             !expandedIndeterminate &&
                             patternStarEntryIndex === undefined &&
