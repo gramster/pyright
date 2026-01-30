@@ -51,6 +51,7 @@ import {
     ImportFromNode,
     IndexNode,
     LambdaNode,
+    ListNode,
     MatchNode,
     MemberAccessNode,
     ModuleNameNode,
@@ -70,6 +71,7 @@ import {
     SuiteNode,
     TernaryNode,
     TryNode,
+    TupleNode,
     TypeAliasNode,
     TypeAnnotationNode,
     TypeParameterListNode,
@@ -1209,6 +1211,20 @@ export class Binder extends ParseTreeWalker {
         return false;
     }
 
+    // Helper method to determine if an expression is a non-empty list or tuple literal.
+    // This is a syntactic check, not a semantic one, so it's very fast.
+    private _isNonEmptyListOrTupleLiteral(expr: ExpressionNode): boolean {
+        if (expr.nodeType === ParseNodeType.List) {
+            const listNode = expr as ListNode;
+            return listNode.d.items.length > 0;
+        }
+        if (expr.nodeType === ParseNodeType.Tuple) {
+            const tupleNode = expr as TupleNode;
+            return tupleNode.d.items.length > 0;
+        }
+        return false;
+    }
+
     override visitFor(node: ForNode) {
         this._bindPossibleTupleNamedTarget(node.d.targetExpr);
         this._addInferredTypeAssignmentForVariable(node.d.targetExpr, node);
@@ -1219,9 +1235,17 @@ export class Binder extends ParseTreeWalker {
         const preElseLabel = this._createBranchLabel();
         const postForLabel = this._createBranchLabel();
 
+        // Determine if this loop is guaranteed to execute at least once
+        const isGuaranteedToExecute = this._isNonEmptyListOrTupleLiteral(node.d.iterableExpr);
+
         this._addAntecedent(preForLabel, this._currentFlowNode!);
         this._currentFlowNode = preForLabel;
-        this._addAntecedent(preElseLabel, this._currentFlowNode);
+        
+        // Only add the zero-iteration path if the loop is not guaranteed to execute
+        if (!isGuaranteedToExecute) {
+            this._addAntecedent(preElseLabel, this._currentFlowNode);
+        }
+        
         const targetExpressions = this._trackCodeFlowExpressions(() => {
             this._createAssignmentTargetFlowNodes(node.d.targetExpr, /* walkTargets */ true, /* unbound */ false);
         });
