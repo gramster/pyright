@@ -14989,8 +14989,13 @@ export function createTypeEvaluator(
             }
 
             // Handle simple iterables.
+            // Pass the individual subtype instead of the full union to avoid nested expansions.
             const iterableType =
-                getTypeOfIterable(yieldFromTypeResult, /* isAsync */ false, node)?.type ?? UnknownType.create();
+                getTypeOfIterable(
+                    { type: yieldFromSubtype, isIncomplete: yieldFromTypeResult.isIncomplete },
+                    /* isAsync */ false,
+                    node
+                )?.type ?? UnknownType.create();
 
             // Does the iterable return a Generator?
             generatorTypeArgs = getGeneratorTypeArgs(iterableType);
