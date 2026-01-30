@@ -476,9 +476,8 @@ test('MatchSequenceVariadic', () => {
 
     configOptions.defaultPythonVersion = pythonVersion3_12;
     const analysisResults = TestUtils.typeAnalyzeSampleFiles(['matchSequenceVariadic.py'], configOptions);
-    // Currently expects 2 errors (missing 3rd case error) and 1 unreachable code (the regression!)
     // After fix: should be 3 errors and 0 unreachable code
-    TestUtils.validateResults(analysisResults, 2, 0, undefined, undefined, 1);
+    TestUtils.validateResults(analysisResults, 3, 0, undefined, undefined, 0);
 });
 
 test('MatchClass1', () => {
