@@ -390,7 +390,7 @@ test('Unbound6', () => {
 
 test('LiteralForLoop1', () => {
     const configOptions = new ConfigOptions(Uri.empty());
-    configOptions.diagnosticRuleSet.reportPossiblyUnbound = 'error';
+    configOptions.diagnosticRuleSet.reportPossiblyUnboundVariable = 'error';
     const analysisResults = TestUtils.typeAnalyzeSampleFiles(['literalForLoop1.py'], configOptions);
 
     // Expected errors:
