@@ -35,6 +35,7 @@ import {
     Arg,
     AssignTypeFlags,
     EvaluatorUsage,
+    maxSubtypesForInferredType,
     TypeEvaluator,
     TypeResult,
     TypeResultWithNode,
@@ -936,16 +937,22 @@ export function getTypedDictDictEquivalent(
         return undefined;
     }
 
-    let dictValueType = entries.extraItems.valueType;
-
+    // Collect all value types first to avoid O(N²) combineTypes calls
+    const valueTypes: Type[] = [entries.extraItems.valueType];
     let isEquivalentToDict = true;
+
     entries.knownItems.forEach((entry) => {
         if (entry.isReadOnly || entry.isRequired) {
             isEquivalentToDict = false;
         }
+        valueTypes.push(entry.valueType);
+    });
 
-        dictValueType = combineTypes([dictValueType, entry.valueType]);
+    // Combine all types at once with a cap to prevent exponential growth
+    const dictValueType = combineTypes(valueTypes, { maxSubtypeCount: maxSubtypesForInferredType });
 
+    // Check if all entry types are assignable to the combined type
+    entries.knownItems.forEach((entry) => {
         if (
             !evaluator.assignType(
                 dictValueType,

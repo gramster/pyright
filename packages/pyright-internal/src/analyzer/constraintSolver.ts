@@ -481,7 +481,9 @@ export function addConstraintsForExpectedType(
                     let typeArgValue: Type | undefined = transformPossibleRecursiveTypeAlias(expectedTypeArgs[index]);
 
                     if (otherSubtypes.length > 0) {
-                        typeArgValue = combineTypes([typeArgValue, ...otherSubtypes]);
+                        typeArgValue = combineTypes([typeArgValue, ...otherSubtypes], {
+                            maxSubtypeCount: maxSubtypesForInferredType,
+                        });
                     }
 
                     if (liveTypeVarScopes) {
