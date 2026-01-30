@@ -5628,6 +5628,41 @@ export function createTypeEvaluator(
             flags | EvalFlags.NoSpecialize
         );
 
+        // Fix for Sentinel narrowing regression: For dataclass instance members, if the retrieved
+        // type contains Unknown but should contain a Sentinel based on the declared type, fix it.
+        if (isClassInstance(baseTypeResult.type) && ClassType.isDataClass(baseTypeResult.type)) {
+            if (typeResult.type && isUnion(typeResult.type)) {
+                const memberName = node.d.member.d.value;
+                const memberInfo = lookUpObjectMember(baseTypeResult.type, memberName);
+                
+                if (memberInfo && memberInfo.isInstanceMember) {
+                    const declaredTypeInfo = getDeclaredTypeOfSymbol(memberInfo.symbol);
+                    const declaredType = declaredTypeInfo.type;
+                    
+                    if (declaredType && isUnion(declaredType)) {
+                        let hasUnknown = false;
+                        let hasSentinel = false;
+                        
+                        doForEachSubtype(typeResult.type, (subtype) => {
+                            if (isUnknown(subtype)) {
+                                hasUnknown = true;
+                            }
+                        });
+                        
+                        doForEachSubtype(declaredType, (subtype) => {
+                            if (isSentinelLiteral(subtype)) {
+                                hasSentinel = true;
+                            }
+                        });
+                        
+                        if (hasUnknown && hasSentinel) {
+                            typeResult.type = declaredType;
+                        }
+                    }
+                }
+            }
+        }
+
         if (isCodeFlowSupportedForReference(node)) {
             // Before performing code flow analysis, update the cache to prevent recursion.
             writeTypeCache(node, { ...typeResult, isIncomplete: true }, flags);
