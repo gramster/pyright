@@ -42,6 +42,7 @@ import {
     FunctionParamFlags,
     FunctionType,
     FunctionTypeFlags,
+    isAny,
     isAnyOrUnknown,
     isClass,
     isClassInstance,
@@ -1092,8 +1093,13 @@ function narrowTypeForIsNone(evaluator: TypeEvaluator, type: Type, isPositiveTes
         /* options */ undefined,
         (subtype, unexpandedSubtype) => {
             if (isAnyOrUnknown(subtype)) {
-                // Assume that "Any" is always both None and not None, so it matches
-                // regardless of whether the test is positive or negative.
+                // For Any type, narrow to None in positive tests ("x is None").
+                // For Unknown type, keep the original behavior.
+                if (isAny(subtype) && isPositiveTest) {
+                    resultIncludesNoneSubtype = true;
+                    return evaluator.getNoneType();
+                }
+                // For Unknown or negative test with Any, keep the original type.
                 return subtype;
             }
 
