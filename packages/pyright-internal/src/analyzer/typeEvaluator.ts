@@ -662,6 +662,7 @@ export function createTypeEvaluator(
     const returnTypeInferenceContextStack: ReturnTypeInferenceContext[] = [];
     let returnTypeInferenceTypeCache: Map<number, TypeCacheEntry> | undefined;
     const signatureTrackerStack: SignatureTrackerStackEntry[] = [];
+    let callEvaluationDepth = 0;  // Track call expression evaluation depth
     let prefetched: Partial<PrefetchedTypes> | undefined;
 
     function runWithCancellationToken<T>(token: CancellationToken, callback: () => T): T;
@@ -8589,6 +8590,26 @@ export function createTypeEvaluator(
     }
 
     function getTypeOfCall(
+        node: CallNode,
+        flags: EvalFlags,
+        inferenceContext: InferenceContext | undefined
+    ): TypeResult {
+        // Protect against excessive call evaluation depth. This can occur
+        // with deeply nested callable expressions that have TypeVarTuple parameters.
+        const maxCallEvaluationDepth = 10;
+        if (callEvaluationDepth > maxCallEvaluationDepth) {
+            return { type: UnknownType.create() };
+        }
+
+        callEvaluationDepth++;
+        try {
+            return getTypeOfCallInternal(node, flags, inferenceContext);
+        } finally {
+            callEvaluationDepth--;
+        }
+    }
+
+    function getTypeOfCallInternal(
         node: CallNode,
         flags: EvalFlags,
         inferenceContext: InferenceContext | undefined
