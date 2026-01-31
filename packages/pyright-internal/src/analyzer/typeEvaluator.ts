@@ -19809,13 +19809,18 @@ export function createTypeEvaluator(
                                             inferredYieldTypes.push(yieldType);
                                             useAwaitableGenerator = true;
                                         } else {
-                                            const yieldType = getTypeOfIterator(
-                                                iteratorTypeResult,
-                                                /* isAsync */ false,
-                                                yieldNode
-                                            )?.type;
+                                            // Iterate over subtypes to avoid nested mapSubtypes calls
+                                            const yieldTypes = mapSubtypes(iteratorTypeResult.type, (subtype) => {
+                                                const yieldType = getTypeOfIterator(
+                                                    { type: subtype, isIncomplete: iteratorTypeResult.isIncomplete },
+                                                    /* isAsync */ false,
+                                                    yieldNode
+                                                )?.type;
 
-                                            inferredYieldTypes.push(yieldType ?? UnknownType.create());
+                                                return yieldType ?? UnknownType.create();
+                                            });
+
+                                            inferredYieldTypes.push(yieldTypes);
                                         }
                                     } else {
                                         // If the yield expression is not by itself in a statement list,
