@@ -659,6 +659,8 @@ export function createTypeEvaluator(
     let cancellationToken: CancellationToken | undefined;
     let printExpressionSpaceCount = 0;
     let incompleteGenCount = 0;
+    let typeEvaluationCount = 0;  // Track total type evaluations to prevent infinite loops
+    const maxTypeEvaluationCount = 1000;  // Bail out after this many evaluations
     const returnTypeInferenceContextStack: ReturnTypeInferenceContext[] = [];
     let returnTypeInferenceTypeCache: Map<number, TypeCacheEntry> | undefined;
     const signatureTrackerStack: SignatureTrackerStackEntry[] = [];
@@ -1246,6 +1248,13 @@ export function createTypeEvaluator(
         flags = EvalFlags.None,
         inferenceContext?: InferenceContext
     ): TypeResult {
+        // Protect against infinite loops in type evaluation by limiting total evaluations.
+        // This is a safety net for cases where recursion guards don't catch the issue.
+        typeEvaluationCount++;
+        if (typeEvaluationCount > maxTypeEvaluationCount) {
+            return { type: UnknownType.create() };
+        }
+
         let typeResult: TypeResult | undefined;
         let expectingInstantiable = (flags & EvalFlags.InstantiableType) !== 0;
 
