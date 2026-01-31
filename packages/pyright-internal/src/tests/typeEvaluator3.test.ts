@@ -139,6 +139,12 @@ test('Generator16', () => {
     TestUtils.validateResults(analysisResults, 1);
 });
 
+test('Generator17', () => {
+    const analysisResults = TestUtils.typeAnalyzeSampleFiles(['generator17.py']);
+
+    TestUtils.validateResults(analysisResults, 0);
+});
+
 test('Await1', () => {
     const analysisResults = TestUtils.typeAnalyzeSampleFiles(['await1.py']);
 

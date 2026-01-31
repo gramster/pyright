@@ -14989,8 +14989,13 @@ export function createTypeEvaluator(
             }
 
             // Handle simple iterables.
+            // Pass the individual subtype instead of the full union to avoid nested expansions.
             const iterableType =
-                getTypeOfIterable(yieldFromTypeResult, /* isAsync */ false, node)?.type ?? UnknownType.create();
+                getTypeOfIterable(
+                    { type: yieldFromSubtype, isIncomplete: yieldFromTypeResult.isIncomplete },
+                    /* isAsync */ false,
+                    node
+                )?.type ?? UnknownType.create();
 
             // Does the iterable return a Generator?
             generatorTypeArgs = getGeneratorTypeArgs(iterableType);
@@ -19804,13 +19809,18 @@ export function createTypeEvaluator(
                                             inferredYieldTypes.push(yieldType);
                                             useAwaitableGenerator = true;
                                         } else {
-                                            const yieldType = getTypeOfIterator(
-                                                iteratorTypeResult,
-                                                /* isAsync */ false,
-                                                yieldNode
-                                            )?.type;
+                                            // Iterate over subtypes to avoid nested mapSubtypes calls
+                                            const yieldTypes = mapSubtypes(iteratorTypeResult.type, (subtype) => {
+                                                const yieldType = getTypeOfIterator(
+                                                    { type: subtype, isIncomplete: iteratorTypeResult.isIncomplete },
+                                                    /* isAsync */ false,
+                                                    yieldNode
+                                                )?.type;
 
-                                            inferredYieldTypes.push(yieldType ?? UnknownType.create());
+                                                return yieldType ?? UnknownType.create();
+                                            });
+
+                                            inferredYieldTypes.push(yieldTypes);
                                         }
                                     } else {
                                         // If the yield expression is not by itself in a statement list,
