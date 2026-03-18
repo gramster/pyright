@@ -57,3 +57,62 @@ def func3(x: Literal[0, 3, "hi"] | MISSING) -> None:
 
 t1 = type(MISSING)
 reveal_type(t1, expected_text="type[MISSING]")
+
+
+# Test narrowing with dataclass fields
+from dataclasses import dataclass
+
+
+@dataclass
+class Foo:
+    name: str | MISSING = MISSING
+
+
+foo = Foo()
+
+reveal_type(foo.name, expected_text="str | MISSING")
+
+if foo.name is MISSING:
+    reveal_type(foo.name, expected_text="MISSING")
+else:
+    reveal_type(foo.name, expected_text="str")
+
+if foo.name is not MISSING:
+    reveal_type(foo.name, expected_text="str")
+else:
+    reveal_type(foo.name, expected_text="MISSING")
+
+
+# Test with multiple sentinels
+UNSET = Sentinel("UNSET")
+
+
+@dataclass
+class Bar:
+    value: int | MISSING | UNSET = MISSING
+
+
+bar = Bar()
+
+if bar.value is MISSING:
+    reveal_type(bar.value, expected_text="MISSING")
+elif bar.value is UNSET:
+    reveal_type(bar.value, expected_text="UNSET")
+else:
+    reveal_type(bar.value, expected_text="int")
+
+
+# Test with complex union including None
+@dataclass
+class Baz:
+    data: int | str | None | MISSING = MISSING
+
+
+baz = Baz()
+
+if baz.data is MISSING:
+    reveal_type(baz.data, expected_text="MISSING")
+elif baz.data is None:
+    reveal_type(baz.data, expected_text="None")
+else:
+    reveal_type(baz.data, expected_text="int | str")
