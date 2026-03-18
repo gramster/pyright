@@ -388,6 +388,17 @@ test('Unbound6', () => {
     TestUtils.validateResults(analysisResults, 8);
 });
 
+test('LiteralForLoop1', () => {
+    const configOptions = new ConfigOptions(Uri.empty());
+    configOptions.diagnosticRuleSet.reportPossiblyUnboundVariable = 'error';
+    const analysisResults = TestUtils.typeAnalyzeSampleFiles(['literalForLoop1.py'], configOptions);
+
+    // Expected errors:
+    // 2 errors for empty list/tuple literals (c and d are possibly unbound)
+    // 2 errors for non-literal iterable and string literal (e and f are possibly unbound)
+    TestUtils.validateResults(analysisResults, 4);
+});
+
 test('Assert1', () => {
     const configOptions = new ConfigOptions(Uri.empty());
 

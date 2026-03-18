@@ -51,6 +51,7 @@ import {
     ImportFromNode,
     IndexNode,
     LambdaNode,
+    ListNode,
     MatchNode,
     MemberAccessNode,
     ModuleNameNode,
@@ -70,6 +71,7 @@ import {
     SuiteNode,
     TernaryNode,
     TryNode,
+    TupleNode,
     TypeAliasNode,
     TypeAnnotationNode,
     TypeParameterListNode,
@@ -1209,6 +1211,20 @@ export class Binder extends ParseTreeWalker {
         return false;
     }
 
+    // Helper method to determine if an expression is a non-empty list or tuple literal.
+    // This is a syntactic check, not a semantic one, so it's very fast.
+    private _isNonEmptyListOrTupleLiteral(expr: ExpressionNode): boolean {
+        if (expr.nodeType === ParseNodeType.List) {
+            const listNode = expr as ListNode;
+            return listNode.d.items.length > 0;
+        }
+        if (expr.nodeType === ParseNodeType.Tuple) {
+            const tupleNode = expr as TupleNode;
+            return tupleNode.d.items.length > 0;
+        }
+        return false;
+    }
+
     override visitFor(node: ForNode) {
         this._bindPossibleTupleNamedTarget(node.d.targetExpr);
         this._addInferredTypeAssignmentForVariable(node.d.targetExpr, node);
@@ -1219,22 +1235,39 @@ export class Binder extends ParseTreeWalker {
         const preElseLabel = this._createBranchLabel();
         const postForLabel = this._createBranchLabel();
 
-        this._addAntecedent(preForLabel, this._currentFlowNode!);
-        this._currentFlowNode = preForLabel;
-        this._addAntecedent(preElseLabel, this._currentFlowNode);
+        // Determine if this loop is guaranteed to execute at least once
+        const isGuaranteedToExecute = this._isNonEmptyListOrTupleLiteral(node.d.iterableExpr);
+
+        if (!isGuaranteedToExecute) {
+            // For potentially-empty iterables, add entry edge to preForLabel
+            this._addAntecedent(preForLabel, this._currentFlowNode!);
+            this._currentFlowNode = preForLabel;
+            this._addAntecedent(preElseLabel, this._currentFlowNode); // Zero-iteration path
+        } else {
+            // For non-empty literals, current flow goes directly to loop body
+            // preForLabel will only be reached via back-edge
+            this._currentFlowNode = this._currentFlowNode; // Keep current flow (entry flows to loop body)
+        }
+        
         const targetExpressions = this._trackCodeFlowExpressions(() => {
             this._createAssignmentTargetFlowNodes(node.d.targetExpr, /* walkTargets */ true, /* unbound */ false);
         });
 
         this._bindLoopStatement(preForLabel, postForLabel, () => {
             this.walk(node.d.forSuite);
-            this._addAntecedent(preForLabel, this._currentFlowNode!);
+            this._addAntecedent(preForLabel, this._currentFlowNode!); // Back-edge
 
             // Add any target expressions since they are modified in the loop.
             targetExpressions.forEach((value) => {
                 this._currentScopeCodeFlowExpressions?.add(value);
             });
         });
+
+        // For non-empty literals, ensure preElseLabel is reachable by adding preForLabel as antecedent
+        // This allows the loop to exit after one or more iterations (but not zero iterations)
+        if (isGuaranteedToExecute) {
+            this._addAntecedent(preElseLabel, preForLabel);
+        }
 
         this._currentFlowNode = this._finishFlowLabel(preElseLabel);
         if (node.d.elseSuite) {
