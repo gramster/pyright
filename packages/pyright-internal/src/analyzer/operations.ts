@@ -778,7 +778,9 @@ export function getTypeOfTernaryOperation(
         return { type: UnknownType.create() };
     }
 
-    evaluator.getTypeOfExpression(node.d.testExpr);
+    // Get the narrowed type of the test expression at this point in the code flow.
+    const testExprTypeResult = evaluator.getTypeOfExpression(node.d.testExpr);
+    const testExprType = evaluator.makeTopLevelTypeVarsConcrete(testExprTypeResult.type);
 
     const typesToCombine: Type[] = [];
     let isIncomplete = false;
@@ -790,7 +792,21 @@ export function getTypeOfTernaryOperation(
         fileInfo.definedConstants
     );
 
-    if (constExprValue !== false && evaluator.isNodeReachable(node.d.ifExpr)) {
+    // Check if we should apply flow-sensitive narrowing. We avoid narrowing for
+    // simple name references with literal bool types because the variable could
+    // be reassigned, even though the type is a literal.
+    const shouldApplyNarrowing =
+        !(
+            node.d.testExpr.nodeType === ParseNodeType.Name &&
+            isClassInstance(testExprType) &&
+            ClassType.isBuiltIn(testExprType, 'bool') &&
+            testExprType.priv.literalValue !== undefined
+        );
+
+    // Determine if the if-branch is reachable based on static evaluation,
+    // general reachability, and flow-sensitive type narrowing.
+    const testCanBeTruthy = shouldApplyNarrowing ? evaluator.canBeTruthy(testExprType) : true;
+    if (constExprValue !== false && evaluator.isNodeReachable(node.d.ifExpr) && testCanBeTruthy) {
         const ifType = evaluator.getTypeOfExpression(node.d.ifExpr, flags, inferenceContext);
         typesToCombine.push(ifType.type);
         if (ifType.isIncomplete) {
@@ -801,7 +817,10 @@ export function getTypeOfTernaryOperation(
         }
     }
 
-    if (constExprValue !== true && evaluator.isNodeReachable(node.d.elseExpr)) {
+    // Determine if the else-branch is reachable based on static evaluation,
+    // general reachability, and flow-sensitive type narrowing.
+    const testCanBeFalsy = shouldApplyNarrowing ? evaluator.canBeFalsy(testExprType) : true;
+    if (constExprValue !== true && evaluator.isNodeReachable(node.d.elseExpr) && testCanBeFalsy) {
         const elseType = evaluator.getTypeOfExpression(node.d.elseExpr, flags, inferenceContext);
         typesToCombine.push(elseType.type);
         if (elseType.isIncomplete) {
