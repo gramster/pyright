@@ -1397,12 +1397,18 @@ export function isMaybeDescriptorInstance(type: Type, requireSetter = false): bo
         return false;
     }
 
-    if (!ClassType.getSymbolTable(type).has('__get__')) {
+    // Use MRO lookup to check for __get__ (including inherited methods)
+    const getMember = lookUpObjectMember(type, '__get__');
+    if (!getMember) {
         return false;
     }
 
-    if (requireSetter && !ClassType.getSymbolTable(type).has('__set__')) {
-        return false;
+    if (requireSetter) {
+        // Use MRO lookup to check for __set__ (including inherited methods)
+        const setMember = lookUpObjectMember(type, '__set__');
+        if (!setMember) {
+            return false;
+        }
     }
 
     return true;
