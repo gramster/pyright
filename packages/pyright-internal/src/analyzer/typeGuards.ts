@@ -1097,7 +1097,7 @@ function narrowTypeForIsNone(evaluator: TypeEvaluator, type: Type, isPositiveTes
                 // For Unknown type, keep the original behavior.
                 if (isAny(subtype) && isPositiveTest) {
                     resultIncludesNoneSubtype = true;
-                    return evaluator.getNoneType();
+                    return addConditionToType(evaluator.getNoneType(), subtype.props?.condition);
                 }
                 // For Unknown or negative test with Any, keep the original type.
                 return subtype;
