@@ -467,6 +467,12 @@ function narrowTypeBasedOnMappingPattern(
             return combineTypes(mappingInfo.filter((m) => !m.isDefinitelyMapping).map((m) => m.subtype));
         }
 
+        // Handle empty mapping patterns for negative narrowing - remove mapping types.
+        if (pattern.d.entries.length === 0) {
+            const mappingInfo = getMappingPatternInfo(evaluator, type, pattern);
+            return combineTypes(mappingInfo.filter((m) => !m.isDefinitelyMapping).map((m) => m.subtype));
+        }
+
         if (pattern.d.entries.length !== 1 || pattern.d.entries[0].nodeType !== ParseNodeType.PatternMappingKeyEntry) {
             return type;
         }
@@ -1304,6 +1310,17 @@ function getMappingPatternInfo(evaluator: TypeEvaluator, type: Type, node: Patte
 
             const mappingType = evaluator.getTypingType(node, 'Mapping');
             if (!mappingType || !isInstantiableClass(mappingType)) {
+                // If we can't get the Mapping type, we can't determine if this is a mapping.
+                // Add it as unknown to avoid losing the subtype.
+                mappingInfo.push({
+                    subtype,
+                    isDefinitelyMapping: false,
+                    isDefinitelyNotMapping: false,
+                    dictTypeArgs: {
+                        key: UnknownType.create(),
+                        value: UnknownType.create(),
+                    },
+                });
                 return;
             }
             const mappingObject = ClassType.cloneAsInstance(mappingType);
