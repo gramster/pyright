@@ -81,6 +81,7 @@ import {
     isLiteralLikeType,
     isLiteralType,
     isLiteralTypeOrUnion,
+    isMaybeDescriptorInstance,
     isMetaclassInstance,
     isNoneInstance,
     isNoneTypeClass,
@@ -2470,14 +2471,11 @@ function narrowTypeForDiscriminatedFieldNoneComparison(
                 doForEachSubtype(declaredType, (declaredSubtype) => {
                     if (isProperty(declaredSubtype)) {
                         isDescriptorOrProperty = true;
-                    } else if (isClassInstance(declaredSubtype)) {
-                        // Check if this class instance has __get__ (including inherited)
-                        const getMember = lookUpObjectMember(declaredSubtype, '__get__');
-                        if (getMember) {
-                            isDescriptorOrProperty = true;
-                        }
+                    } else if (isMaybeDescriptorInstance(declaredSubtype)) {
+                        // isMaybeDescriptorInstance now uses MRO lookup to detect inherited __get__
+                        isDescriptorOrProperty = true;
                     } else if (isInstantiableClass(declaredSubtype)) {
-                        // Check if this class has __get__ (including inherited)
+                        // Check if this instantiable class has __get__ (including inherited)
                         const getMember = lookUpClassMember(declaredSubtype, '__get__');
                         if (getMember) {
                             isDescriptorOrProperty = true;
