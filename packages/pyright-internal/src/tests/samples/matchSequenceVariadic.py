@@ -26,3 +26,9 @@ def func6(val: Func6Input):
             # E: Argument of type "tuple[int, str, int]" cannot be assigned to parameter of type "tuple[int] | tuple[str, str] | tuple[int, *tuple[str, ...], int]"
             assert_type(val, Func6Input)
             assert_type(val, tuple[int, str, int])
+
+        case (w, x, y, z):
+            # Type may be narrowed to tuple[int, str, str, int].
+            # E: Argument of type "tuple[int, str, str, int]" cannot be assigned to parameter of type "tuple[int] | tuple[str, str] | tuple[int, *tuple[str, ...], int]"
+            assert_type(val, Func6Input)
+            assert_type(val, tuple[int, str, str, int])
