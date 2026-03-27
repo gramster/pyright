@@ -1423,6 +1423,10 @@ function getSequencePatternInfo(
                     // If the tuple contains an indeterminate entry, expand or remove that
                     // entry to match the length of the pattern if possible.
                     let expandedIndeterminate = false;
+                    // Track when we remove an unbounded entry. When removedIndeterminate is true,
+                    // tupleIndeterminateIndex becomes -1, making isUnboundedTuple false at line 1510.
+                    // This is safe because isPotentialNoMatch=true (set below) prevents incorrect
+                    // elimination at line 342 before the isUnboundedTuple guard at line 239 matters.
                     let removedIndeterminate = false;
                     if (tupleIndeterminateIndex >= 0) {
                         tupleDeterminateEntryCount--;
@@ -1492,19 +1496,6 @@ function getSequencePatternInfo(
                             tupleIndeterminateIndex >= 0 &&
                             pattern.d.entries.length - 1 === tupleDeterminateEntryCount &&
                             patternStarEntryIndex === tupleIndeterminateIndex
-                        ) {
-                            isPotentialNoMatch = false;
-                        }
-
-                        // If the pattern has no star entry but the lengths match exactly,
-                        // and the tuple still has an unbounded entry (not removed), the
-                        // unbounded entry will match exactly the corresponding pattern position.
-                        // Note: When removedIndeterminate is true, tupleIndeterminateIndex is -1,
-                        // so this block only applies when the unbounded entry is still present.
-                        if (
-                            !expandedIndeterminate &&
-                            patternStarEntryIndex === undefined &&
-                            tupleIndeterminateIndex >= 0
                         ) {
                             isPotentialNoMatch = false;
                         }
