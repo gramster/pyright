@@ -470,7 +470,7 @@ function narrowTypeBasedOnMappingPattern(
         // Handle empty mapping patterns for negative narrowing - remove mapping types.
         if (pattern.d.entries.length === 0) {
             const mappingInfo = getMappingPatternInfo(evaluator, type, pattern);
-            return combineTypes(mappingInfo.filter((m) => m.isDefinitelyNotMapping).map((m) => m.subtype));
+            return combineTypes(mappingInfo.filter((m) => !m.isDefinitelyMapping).map((m) => m.subtype));
         }
 
         if (pattern.d.entries.length !== 1 || pattern.d.entries[0].nodeType !== ParseNodeType.PatternMappingKeyEntry) {
@@ -1297,16 +1297,6 @@ function getMappingPatternInfo(evaluator: TypeEvaluator, type: Type, node: Patte
         }
 
         if (isClassInstance(concreteSubtype)) {
-            // None is definitely not a mapping.
-            if (isNoneInstance(concreteSubtype)) {
-                mappingInfo.push({
-                    subtype,
-                    isDefinitelyMapping: false,
-                    isDefinitelyNotMapping: true,
-                });
-                return;
-            }
-
             // Is it a TypedDict?
             if (ClassType.isTypedDictClass(concreteSubtype)) {
                 mappingInfo.push({

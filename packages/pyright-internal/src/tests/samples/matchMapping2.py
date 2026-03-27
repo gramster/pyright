@@ -34,3 +34,12 @@ def test_union_with_str(x: dict[str, str] | str) -> None:
             reveal_type(x, expected_text="dict[str, str]")
         case _:
             reveal_type(x, expected_text="str")
+
+
+def test_union_with_any(x: dict[str, str] | Any) -> None:
+    match x:
+        case {}:
+            reveal_type(x, expected_text="dict[str, str] | Any")
+        case _:
+            reveal_type(x, expected_text="Any")
+
