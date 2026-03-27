@@ -14233,12 +14233,7 @@ export function createTypeEvaluator(
             stripTypeForm(convertSpecialFormToRuntimeValue(stripLiteralValue(t.type), flags, !hasExpectedType))
         );
 
-        // If there are too many entries with distinct types, bail out early to avoid
-        // exponential type inference cost. This prevents OOM issues with large dictionaries.
-        if (keyTypes.length > maxSubtypesForInferredType || valueTypes.length > maxSubtypesForInferredType) {
-            keyType = fallbackType;
-            valueType = fallbackType;
-        } else if (keyTypes.length > 0) {
+        if (keyTypes.length > 0) {
             if (AnalyzerNodeInfo.getFileInfo(node).diagnosticRuleSet.strictDictionaryInference || hasExpectedType) {
                 keyType = combineTypes(keyTypes, { maxSubtypeCount: maxSubtypesForInferredType });
             } else {
@@ -14253,13 +14248,13 @@ export function createTypeEvaluator(
         // between different keys and associated value types. If all the values
         // are the same type, we'll assume that all values in this dictionary should
         // be the same.
-        if (valueTypes.length > 0 && keyTypes.length <= maxSubtypesForInferredType) {
+        if (valueTypes.length > 0) {
             if (AnalyzerNodeInfo.getFileInfo(node).diagnosticRuleSet.strictDictionaryInference || hasExpectedType) {
                 valueType = combineTypes(valueTypes, { maxSubtypeCount: maxSubtypesForInferredType });
             } else {
                 valueType = areTypesSame(valueTypes, { ignorePseudoGeneric: true }) ? valueTypes[0] : fallbackType;
             }
-        } else if (valueTypes.length === 0) {
+        } else {
             valueType = fallbackType;
             isEmptyContainer = true;
         }

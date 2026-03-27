@@ -482,7 +482,7 @@ export function addConstraintsForExpectedType(
 
                     if (otherSubtypes.length > 0) {
                         typeArgValue = combineTypes([typeArgValue, ...otherSubtypes], {
-                            maxSubtypeCount: maxSubtypesForInferredType,
+                            maxSubtypeCount: maxSubtypeCountForTypeVarLowerBound,
                         });
                     }
 
