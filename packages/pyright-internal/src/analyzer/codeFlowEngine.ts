@@ -43,6 +43,11 @@ import { SpeculativeTypeTracker } from './typeCacheUtils';
 import { narrowForKeyAssignment } from './typedDicts';
 import { EvalFlags, Reachability, TypeEvaluator, TypeResult } from './typeEvaluatorTypes';
 import { getTypeNarrowingCallback } from './typeGuards';
+
+// Maximum number of subtypes for control flow narrowing before we widen to Any.
+// This is higher than maxSubtypesForInferredType to allow complex control flow
+// (e.g., large match statements) while still preventing pathological cases.
+const maxSubtypesForControlFlowNarrowing = 512;
 import {
     ClassType,
     combineTypes,
@@ -363,7 +368,7 @@ export function getCodeFlowEngine(
                         }
                     });
 
-                    combinedType = typesToCombine.length > 0 ? combineTypes(typesToCombine) : undefined;
+                    combinedType = typesToCombine.length > 0 ? combineTypes(typesToCombine, { maxSubtypeCount: maxSubtypesForControlFlowNarrowing }) : undefined;
                 }
 
                 cachedEntry.type = combinedType;
@@ -420,7 +425,7 @@ export function getCodeFlowEngine(
                     }
                 });
 
-                return combineTypes(typesToCombine);
+                return combineTypes(typesToCombine, { maxSubtypeCount: maxSubtypesForControlFlowNarrowing });
             }
 
             function evaluateAssignmentFlowNode(flowNode: FlowAssignment): TypeResult | undefined {
@@ -958,7 +963,7 @@ export function getCodeFlowEngine(
                     }
                 }
 
-                const effectiveType = typesToCombine.length > 0 ? combineTypes(typesToCombine) : undefined;
+                const effectiveType = typesToCombine.length > 0 ? combineTypes(typesToCombine, { maxSubtypeCount: maxSubtypesForControlFlowNarrowing }) : undefined;
 
                 return setCacheEntry(branchNode, effectiveType, sawIncomplete);
             }

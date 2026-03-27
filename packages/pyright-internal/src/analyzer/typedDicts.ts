@@ -35,6 +35,7 @@ import {
     Arg,
     AssignTypeFlags,
     EvaluatorUsage,
+    maxSubtypesForInferredType,
     TypeEvaluator,
     TypeResult,
     TypeResultWithNode,
@@ -944,7 +945,7 @@ export function getTypedDictDictEquivalent(
             isEquivalentToDict = false;
         }
 
-        dictValueType = combineTypes([dictValueType, entry.valueType]);
+        dictValueType = combineTypes([dictValueType, entry.valueType], { maxSubtypeCount: maxSubtypesForInferredType });
 
         if (
             !evaluator.assignType(
