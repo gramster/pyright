@@ -1,6 +1,8 @@
 # This sample tests type narrowing for mapping patterns with unions
 # containing non-mapping types like None and tuples.
 
+from typing import Any
+
 
 def test_union_with_none(x: dict[str, str] | None) -> None:
     match x:

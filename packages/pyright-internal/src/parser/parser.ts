@@ -1336,12 +1336,7 @@ export class Parser {
     private _parsePatternMapping(firstToken: Token): PatternMappingNode | ErrorNode {
         const itemList = this._parseExpressionListGeneric(() => this._parsePatternMappingItem());
 
-        // Return early if there was a parse error.
-        if (itemList.parseError) {
-            return itemList.parseError;
-        }
-
-        // Empty mapping patterns (e.g., `{}`) are valid and match any mapping.
+        // If we have successfully parsed entries, validate and create the node even if there was an error.
         if (itemList.list.length > 0) {
             // Verify there's at most one ** entry.
             const starStarEntries = itemList.list.filter(
@@ -1350,8 +1345,15 @@ export class Parser {
             if (starStarEntries.length > 1) {
                 this._addSyntaxError(LocMessage.duplicateStarStarPattern(), starStarEntries[1]);
             }
+            return PatternMappingNode.create(firstToken, itemList.list);
         }
 
+        // Return early if there was a parse error and no entries were parsed.
+        if (itemList.parseError) {
+            return itemList.parseError;
+        }
+
+        // Empty mapping patterns (e.g., `{}`) are valid and match any mapping.
         return PatternMappingNode.create(firstToken, itemList.list);
     }
 
