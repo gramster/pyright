@@ -937,22 +937,16 @@ export function getTypedDictDictEquivalent(
         return undefined;
     }
 
-    // Collect all value types first to avoid O(N²) combineTypes calls
-    const valueTypes: Type[] = [entries.extraItems.valueType];
-    let isEquivalentToDict = true;
+    let dictValueType = entries.extraItems.valueType;
 
+    let isEquivalentToDict = true;
     entries.knownItems.forEach((entry) => {
         if (entry.isReadOnly || entry.isRequired) {
             isEquivalentToDict = false;
         }
-        valueTypes.push(entry.valueType);
-    });
 
-    // Combine all types at once with a cap to prevent exponential growth
-    const dictValueType = combineTypes(valueTypes, { maxSubtypeCount: maxSubtypesForInferredType });
+        dictValueType = combineTypes([dictValueType, entry.valueType], { maxSubtypeCount: maxSubtypesForInferredType });
 
-    // Check if all entry types are assignable to the combined type
-    entries.knownItems.forEach((entry) => {
         if (
             !evaluator.assignType(
                 dictValueType,
