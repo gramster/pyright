@@ -51,7 +51,6 @@ import {
     ImportFromNode,
     IndexNode,
     LambdaNode,
-    ListNode,
     MatchNode,
     MemberAccessNode,
     ModuleNameNode,
@@ -71,7 +70,6 @@ import {
     SuiteNode,
     TernaryNode,
     TryNode,
-    TupleNode,
     TypeAliasNode,
     TypeAnnotationNode,
     TypeParameterListNode,
@@ -1213,14 +1211,23 @@ export class Binder extends ParseTreeWalker {
 
     // Helper method to determine if an expression is a non-empty list or tuple literal.
     // This is a syntactic check, not a semantic one, so it's very fast.
+    // Guards against starred expressions ([*empty_list]) and comprehensions ([v for v in []]).
     private _isNonEmptyListOrTupleLiteral(expr: ExpressionNode): boolean {
         if (expr.nodeType === ParseNodeType.List) {
-            const listNode = expr as ListNode;
-            return listNode.d.items.length > 0;
+            return (
+                expr.d.items.length > 0 &&
+                expr.d.items.every(
+                    (item) =>
+                        item.nodeType !== ParseNodeType.Unpack &&
+                        item.nodeType !== ParseNodeType.Comprehension
+                )
+            );
         }
         if (expr.nodeType === ParseNodeType.Tuple) {
-            const tupleNode = expr as TupleNode;
-            return tupleNode.d.items.length > 0;
+            return (
+                expr.d.items.length > 0 &&
+                expr.d.items.every((item) => item.nodeType !== ParseNodeType.Unpack)
+            );
         }
         return false;
     }

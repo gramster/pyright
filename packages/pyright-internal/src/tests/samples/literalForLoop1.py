@@ -68,3 +68,21 @@ def test_string_literal():
         f = "string"
     # This should generate an error because string literals are not supported in this PR
     del f
+
+
+def test_starred_expression():
+    """Variable assigned in for loop over starred expression should be reported as possibly unbound."""
+    empty: list[int] = []
+    for x in [*empty]:
+        g = 1
+    # This should generate an error because g is possibly unbound
+    del g
+
+
+def test_list_comprehension():
+    """Variable assigned in for loop over list comprehension should be reported as possibly unbound."""
+    for x in [v for v in []]:
+        h = 1
+    # This should generate an error because h is possibly unbound
+    del h
+

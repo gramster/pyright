@@ -396,7 +396,8 @@ test('LiteralForLoop1', () => {
     // Expected errors:
     // 2 errors for empty list/tuple literals (c and d are possibly unbound)
     // 2 errors for non-literal iterable and string literal (e and f are possibly unbound)
-    TestUtils.validateResults(analysisResults, 4);
+    // 2 errors for starred expression and list comprehension (g and h are possibly unbound)
+    TestUtils.validateResults(analysisResults, 6);
 });
 
 test('Assert1', () => {
