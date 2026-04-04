@@ -14981,6 +14981,9 @@ export function createTypeEvaluator(
             yieldFromType = removeNoneFromUnion(yieldFromType);
         }
 
+        // Expand type aliases to ensure the optimization fires
+        yieldFromType = transformPossibleRecursiveTypeAlias(yieldFromType);
+
         const returnedType = mapSubtypes(yieldFromType, (yieldFromSubtype) => {
             // Is the expression a Generator type?
             let generatorTypeArgs = getGeneratorTypeArgs(yieldFromSubtype);
@@ -19820,8 +19823,18 @@ export function createTypeEvaluator(
                                             // Check for optional type and strip None before processing subtypes
                                             let iteratorType = iteratorTypeResult.type;
                                             if (isOptionalType(iteratorType)) {
+                                                if (!iteratorTypeResult.isIncomplete) {
+                                                    addDiagnostic(
+                                                        DiagnosticRule.reportOptionalIterable,
+                                                        LocMessage.noneNotIterable(),
+                                                        yieldNode
+                                                    );
+                                                }
                                                 iteratorType = removeNoneFromUnion(iteratorType);
                                             }
+
+                                            // Expand type aliases to ensure the optimization fires
+                                            iteratorType = transformPossibleRecursiveTypeAlias(iteratorType);
 
                                             // Iterate over subtypes to avoid nested mapSubtypes calls
                                             const yieldTypes = mapSubtypes(iteratorType, (subtype) => {

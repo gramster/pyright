@@ -2,6 +2,7 @@
 # yield from with a type alias union causes exponential processing time.
 
 from collections.abc import Iterator
+from typing import Generator, reveal_type
 
 
 class A[T]:
@@ -16,6 +17,9 @@ type C[T] = A[T] | B[T]
 
 
 def g() -> C[int | str]: ...
+
+
+def g_optional() -> C[int | str] | None: ...
 
 
 def f_0():
@@ -56,3 +60,14 @@ def f_8():
 
 def f_9():
     yield from g()
+
+
+# Test optional union case
+def f_optional():
+    # This should generate an error for optional iterable
+    yield from g_optional()
+
+
+# Validate inferred types
+reveal_type(f_0)  # Should be () -> Generator[int | str, None, None]
+reveal_type(f_optional)  # Should be () -> Generator[int | str, None, None]

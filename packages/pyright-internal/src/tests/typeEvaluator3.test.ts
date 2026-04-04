@@ -142,7 +142,8 @@ test('Generator16', () => {
 test('Generator17', () => {
     const analysisResults = TestUtils.typeAnalyzeSampleFiles(['generator17.py']);
 
-    TestUtils.validateResults(analysisResults, 0);
+    // 1 error for optional iterable
+    TestUtils.validateResults(analysisResults, 1);
 });
 
 test('Await1', () => {
