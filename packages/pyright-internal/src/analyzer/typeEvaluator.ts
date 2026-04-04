@@ -14971,7 +14971,15 @@ export function createTypeEvaluator(
 
     function getTypeOfYieldFrom(node: YieldFromNode): TypeResult {
         const yieldFromTypeResult = getTypeOfExpression(node.d.expr);
-        const yieldFromType = yieldFromTypeResult.type;
+        let yieldFromType = yieldFromTypeResult.type;
+
+        // Check for optional type and emit diagnostic before processing subtypes
+        if (isOptionalType(yieldFromType)) {
+            if (!yieldFromTypeResult.isIncomplete) {
+                addDiagnostic(DiagnosticRule.reportOptionalIterable, LocMessage.noneNotIterable(), node);
+            }
+            yieldFromType = removeNoneFromUnion(yieldFromType);
+        }
 
         const returnedType = mapSubtypes(yieldFromType, (yieldFromSubtype) => {
             // Is the expression a Generator type?
@@ -19809,8 +19817,14 @@ export function createTypeEvaluator(
                                             inferredYieldTypes.push(yieldType);
                                             useAwaitableGenerator = true;
                                         } else {
+                                            // Check for optional type and strip None before processing subtypes
+                                            let iteratorType = iteratorTypeResult.type;
+                                            if (isOptionalType(iteratorType)) {
+                                                iteratorType = removeNoneFromUnion(iteratorType);
+                                            }
+
                                             // Iterate over subtypes to avoid nested mapSubtypes calls
-                                            const yieldTypes = mapSubtypes(iteratorTypeResult.type, (subtype) => {
+                                            const yieldTypes = mapSubtypes(iteratorType, (subtype) => {
                                                 const yieldType = getTypeOfIterator(
                                                     { type: subtype, isIncomplete: iteratorTypeResult.isIncomplete },
                                                     /* isAsync */ false,
