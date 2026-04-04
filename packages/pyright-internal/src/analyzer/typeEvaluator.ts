@@ -5629,18 +5629,15 @@ export function createTypeEvaluator(
         );
 
         // Fix for Sentinel narrowing regression: For dataclass instance members, if the retrieved
-        // type contains Unknown but should contain a Sentinel based on the declared type, fix it.
-        // When a dataclass field has an explicit type annotation (e.g., `str | MISSING`), we trust
-        // the declared type completely. Any Unknown in the retrieved type is erroneous and likely
-        // resulted from inappropriate application of parameter default value inference logic.
-        // In this case, we replace the entire retrieved type with the declared type to ensure
-        // Sentinel types are preserved for narrowing.
+        // type contains Unknown but the declared type contains a Sentinel, use the declared type.
+        // This prevents inferred parameter types (which add Unknown to Sentinel defaults) from
+        // leaking into field types. We specialize the declared type to handle generic dataclasses.
         if (isClassInstance(baseTypeResult.type) && ClassType.isDataClass(baseTypeResult.type)) {
             if (typeResult.type && isUnion(typeResult.type)) {
                 const memberName = node.d.member.d.value;
                 const memberInfo = lookUpObjectMember(baseTypeResult.type, memberName);
                 
-                if (memberInfo && memberInfo.isInstanceMember) {
+                if (memberInfo && memberInfo.isInstanceMember && isInstantiableClass(memberInfo.classType)) {
                     const declaredTypeInfo = getDeclaredTypeOfSymbol(memberInfo.symbol);
                     const declaredType = declaredTypeInfo.type;
                     
@@ -5661,7 +5658,13 @@ export function createTypeEvaluator(
                         });
                         
                         if (hasUnknown && hasSentinel) {
-                            typeResult.type = declaredType;
+                            // Specialize the declared type to handle generic dataclasses
+                            typeResult.type = partiallySpecializeType(
+                                declaredType,
+                                memberInfo.classType,
+                                getTypeClassType(),
+                                /* selfClass */ undefined
+                            );
                         }
                     }
                 }
@@ -23972,8 +23975,22 @@ export function createTypeEvaluator(
 
     function getTypeOfMember(member: ClassMember): Type {
         if (isInstantiableClass(member.classType)) {
+            let memberType: Type;
+            
+            // For dataclass instance members, always use the declared type annotation
+            // to prevent inferred parameter types (which may include Unknown for sentinel
+            // defaults) from leaking into the field type. This fixes a regression where
+            // Sentinel types in dataclass field unions were incorrectly replaced with Unknown.
+            if (ClassType.isDataClass(member.classType) && member.isInstanceMember && member.symbol.hasTypedDeclarations()) {
+                const declaredTypeInfo = getDeclaredTypeOfSymbol(member.symbol);
+                memberType = declaredTypeInfo.type ?? getEffectiveTypeOfSymbol(member.symbol);
+            } else {
+                memberType = getEffectiveTypeOfSymbol(member.symbol);
+            }
+            
+            // Apply specialization to handle generic dataclasses correctly
             return partiallySpecializeType(
-                getEffectiveTypeOfSymbol(member.symbol),
+                memberType,
                 member.classType,
                 getTypeClassType(),
                 /* selfClass */ undefined

@@ -116,3 +116,22 @@ elif baz.data is None:
     reveal_type(baz.data, expected_text="None")
 else:
     reveal_type(baz.data, expected_text="int | str")
+
+
+# Test with generic dataclass
+@dataclass
+class GenericContainer[T]:
+    value: T | MISSING = MISSING
+
+
+g_int = GenericContainer[int]()
+reveal_type(g_int.value, expected_text="int | MISSING")
+
+if g_int.value is not MISSING:
+    reveal_type(g_int.value, expected_text="int")
+
+g_str = GenericContainer[str]()
+if g_str.value is MISSING:
+    reveal_type(g_str.value, expected_text="MISSING")
+else:
+    reveal_type(g_str.value, expected_text="str")
