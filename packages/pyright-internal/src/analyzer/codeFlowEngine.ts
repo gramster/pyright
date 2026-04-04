@@ -43,11 +43,6 @@ import { SpeculativeTypeTracker } from './typeCacheUtils';
 import { narrowForKeyAssignment } from './typedDicts';
 import { EvalFlags, Reachability, TypeEvaluator, TypeResult } from './typeEvaluatorTypes';
 import { getTypeNarrowingCallback } from './typeGuards';
-
-// Maximum number of subtypes for control flow narrowing before we widen to Any.
-// This is higher than maxSubtypesForInferredType to allow complex control flow
-// (e.g., large match statements) while still preventing pathological cases.
-const maxSubtypesForControlFlowNarrowing = 512;
 import {
     ClassType,
     combineTypes,
@@ -79,6 +74,11 @@ import {
     isTypeAliasPlaceholder,
     mapSubtypes,
 } from './typeUtils';
+
+// Maximum number of subtypes for control flow narrowing before we widen to Any.
+// This is higher than maxSubtypesForInferredType to allow complex control flow
+// (e.g., large match statements) while still preventing pathological cases.
+const maxSubtypesForControlFlowNarrowing = 512;
 
 export interface FlowNodeTypeResult {
     type: Type | undefined;
