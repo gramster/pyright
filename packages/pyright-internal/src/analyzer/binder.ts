@@ -1238,24 +1238,21 @@ export class Binder extends ParseTreeWalker {
         // Determine if this loop is guaranteed to execute at least once
         const isGuaranteedToExecute = this._isNonEmptyListOrTupleLiteral(node.d.iterableExpr);
 
+        this._addAntecedent(preForLabel, this._currentFlowNode!);
+        this._currentFlowNode = preForLabel;
+
+        // Only add zero-iteration path for potentially-empty iterables
         if (!isGuaranteedToExecute) {
-            // For potentially-empty iterables, add entry edge to preForLabel
-            this._addAntecedent(preForLabel, this._currentFlowNode!);
-            this._currentFlowNode = preForLabel;
-            this._addAntecedent(preElseLabel, this._currentFlowNode); // Zero-iteration path
-        } else {
-            // For non-empty literals, current flow goes directly to loop body
-            // preForLabel will only be reached via back-edge
-            this._currentFlowNode = this._currentFlowNode; // Keep current flow (entry flows to loop body)
+            this._addAntecedent(preElseLabel, this._currentFlowNode);
         }
-        
+
         const targetExpressions = this._trackCodeFlowExpressions(() => {
             this._createAssignmentTargetFlowNodes(node.d.targetExpr, /* walkTargets */ true, /* unbound */ false);
         });
 
         this._bindLoopStatement(preForLabel, postForLabel, () => {
             this.walk(node.d.forSuite);
-            this._addAntecedent(preForLabel, this._currentFlowNode!); // Back-edge
+            this._addAntecedent(preForLabel, this._currentFlowNode!);
 
             // Add any target expressions since they are modified in the loop.
             targetExpressions.forEach((value) => {
@@ -1263,10 +1260,9 @@ export class Binder extends ParseTreeWalker {
             });
         });
 
-        // For non-empty literals, ensure preElseLabel is reachable by adding preForLabel as antecedent
-        // This allows the loop to exit after one or more iterations (but not zero iterations)
+        // For guaranteed loops, add post-body exit path
         if (isGuaranteedToExecute) {
-            this._addAntecedent(preElseLabel, preForLabel);
+            this._addAntecedent(preElseLabel, this._currentFlowNode!);
         }
 
         this._currentFlowNode = this._finishFlowLabel(preElseLabel);
