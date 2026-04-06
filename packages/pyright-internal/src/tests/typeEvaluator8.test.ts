@@ -923,6 +923,12 @@ test('Dictionary5', () => {
     TestUtils.validateResults(analysisResults, 0);
 });
 
+test('Dictionary6', () => {
+    const analysisResults = TestUtils.typeAnalyzeSampleFiles(['dictionary6.py']);
+
+    TestUtils.validateResults(analysisResults, 0);
+});
+
 test('StaticExpression1', () => {
     const configOptions = new ConfigOptions(Uri.empty());
 
