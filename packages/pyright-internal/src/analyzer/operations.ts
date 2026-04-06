@@ -767,7 +767,7 @@ export function getTypeOfUnaryOperation(
 
 // Helper function to check if an expression is a simple name or `not <Name>` with a literal bool type.
 // We avoid narrowing for these cases because the variable could be reassigned.
-function isBoolLiteralName(expr: ExpressionNode, exprType: Type): boolean {
+function isBoolLiteralName(expr: ExpressionNode, exprType: Type, evaluator: TypeEvaluator): boolean {
     // Check for simple name references
     if (expr.nodeType === ParseNodeType.Name) {
         return (
@@ -779,7 +779,11 @@ function isBoolLiteralName(expr: ExpressionNode, exprType: Type): boolean {
 
     // Check for `not <Name>` expressions
     if (expr.nodeType === ParseNodeType.UnaryOperation && expr.d.operator === OperatorType.Not) {
-        return isBoolLiteralName(expr.d.expr, exprType);
+        // Evaluate the inner expression's type (not the `not` expression's type)
+        const innerType = evaluator.makeTopLevelTypeVarsConcrete(
+            evaluator.getTypeOfExpression(expr.d.expr).type
+        );
+        return isBoolLiteralName(expr.d.expr, innerType, evaluator);
     }
 
     return false;
@@ -800,7 +804,7 @@ export function getTypeOfTernaryOperation(
 
     // Get the narrowed type of the test expression at this point in the code flow.
     const testExprTypeResult = evaluator.getTypeOfExpression(node.d.testExpr);
-    const testExprType = evaluator.makeTopLevelTypeVarsConcrete(testExprTypeResult.type);
+    const testExprType = testExprTypeResult.type;
 
     const typesToCombine: Type[] = [];
     let isIncomplete = false;
@@ -816,7 +820,10 @@ export function getTypeOfTernaryOperation(
     // simple name references with literal bool types because the variable could
     // be reassigned, even though the type is a literal. This also applies to
     // `not <Name>` expressions to maintain consistency.
-    const shouldApplyNarrowing = !isBoolLiteralName(node.d.testExpr, testExprType);
+    // Note: This guard is specific to ternary expressions. The and/or operators
+    // don't need this guard because they operate on already-evaluated types from
+    // their operands, not on types that may have been narrowed by upstream flow analysis.
+    const shouldApplyNarrowing = !isBoolLiteralName(node.d.testExpr, testExprType, evaluator);
 
     // Determine if the if-branch is reachable based on static evaluation,
     // general reachability, and flow-sensitive type narrowing.
