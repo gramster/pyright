@@ -765,6 +765,26 @@ export function getTypeOfUnaryOperation(
     return { type, isIncomplete, magicMethodDeprecationInfo: deprecatedInfo };
 }
 
+// Helper function to check if an expression is a simple name or `not <Name>` with a literal bool type.
+// We avoid narrowing for these cases because the variable could be reassigned.
+function isBoolLiteralName(expr: ExpressionNode, exprType: Type): boolean {
+    // Check for simple name references
+    if (expr.nodeType === ParseNodeType.Name) {
+        return (
+            isClassInstance(exprType) &&
+            ClassType.isBuiltIn(exprType, 'bool') &&
+            exprType.priv.literalValue !== undefined
+        );
+    }
+
+    // Check for `not <Name>` expressions
+    if (expr.nodeType === ParseNodeType.UnaryOperation && expr.d.operator === OperatorType.Not) {
+        return isBoolLiteralName(expr.d.expr, exprType);
+    }
+
+    return false;
+}
+
 export function getTypeOfTernaryOperation(
     evaluator: TypeEvaluator,
     node: TernaryNode,
@@ -794,14 +814,9 @@ export function getTypeOfTernaryOperation(
 
     // Check if we should apply flow-sensitive narrowing. We avoid narrowing for
     // simple name references with literal bool types because the variable could
-    // be reassigned, even though the type is a literal.
-    const shouldApplyNarrowing =
-        !(
-            node.d.testExpr.nodeType === ParseNodeType.Name &&
-            isClassInstance(testExprType) &&
-            ClassType.isBuiltIn(testExprType, 'bool') &&
-            testExprType.priv.literalValue !== undefined
-        );
+    // be reassigned, even though the type is a literal. This also applies to
+    // `not <Name>` expressions to maintain consistency.
+    const shouldApplyNarrowing = !isBoolLiteralName(node.d.testExpr, testExprType);
 
     // Determine if the if-branch is reachable based on static evaluation,
     // general reachability, and flow-sensitive type narrowing.

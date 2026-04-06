@@ -81,5 +81,22 @@ def func6(val: list[int] | None):
         return
     
     # However, val could still be an empty list (falsy), so the else branch
-    # is still reachable. This should be an error.
-    ts1: list[int] = val if val else []  # type: ignore
+    # is still reachable. Both branches should contribute to the type.
+    ts1: list[int] | str = val if val else "empty"
+    assert_type(val if val else "empty", list[int] | str)
+
+
+def func_bool_literal():
+    # Test that the bool literal guard prevents over-narrowing for mutable variables.
+    maybe = True
+    # Both branches should remain since maybe could be reassigned.
+    ts: int | str = 1 if maybe else "no"
+    assert_type(1 if maybe else "no", int | str)
+
+
+def func_bool_literal_not():
+    # Test that the bool literal guard also applies to `not` expressions.
+    flag = True
+    # Both branches should remain since flag could be reassigned.
+    ts: int | str = 1 if not flag else "yes"
+    assert_type(1 if not flag else "yes", int | str)
