@@ -142,8 +142,8 @@ test('Generator16', () => {
 test('Generator17', () => {
     const analysisResults = TestUtils.typeAnalyzeSampleFiles(['generator17.py']);
 
-    // 1 error for optional iterable
-    TestUtils.validateResults(analysisResults, 1);
+    // 1 error for optional iterable, 2 infos for reveal_type assertions
+    TestUtils.validateResults(analysisResults, 1, 0, 2);
 });
 
 test('Await1', () => {

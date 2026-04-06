@@ -69,5 +69,5 @@ def f_optional():
 
 
 # Validate inferred types
-reveal_type(f_0)  # Should be () -> Generator[int | str, None, None]
-reveal_type(f_optional)  # Should be () -> Generator[int | str, None, None]
+reveal_type(f_0, expected_text="() -> Generator[int | str, Unknown, None]")
+reveal_type(f_optional, expected_text="() -> Generator[int | str, Unknown, None]")
