@@ -2473,7 +2473,6 @@ function narrowTypeForDiscriminatedFieldNoneComparison(
                     } else if (isMaybeDescriptorInstance(declaredSubtype)) {
                         isDescriptorOrProperty = true;
                     } else if (isInstantiableClass(declaredSubtype)) {
-                        // Handle instantiable classes (type annotations)
                         const getMember = lookUpClassMember(declaredSubtype, '__get__');
                         if (getMember) {
                             isDescriptorOrProperty = true;
