@@ -5642,11 +5642,17 @@ export function createTypeEvaluator(
         // types from the declared annotation, avoiding modification of shared type resolution
         // infrastructure while preserving any legitimate narrowing from getTypeOfMemberAccessWithBaseType.
         //
+        // Scope: ClassType.isDataClass covers @dataclass and @dataclass_transform classes. Other
+        // synthesized patterns with sentinel defaults would be separate issues if affected.
+        //
         // TODO: Investigate root cause to potentially fix at the source (synthesizeDataClassMethods
         // or getEffectiveTypeOfSymbol) rather than patching at consumption site.
         if (isClassInstance(baseTypeResult.type) && ClassType.isDataClass(baseTypeResult.type)) {
             if (typeResult.type && isUnion(typeResult.type)) {
                 const memberName = node.d.member.d.value;
+                // Note: lookUpObjectMember and getDeclaredTypeOfSymbol repeat work done inside
+                // getTypeOfMemberAccessWithBaseType, but both are cached so runtime cost is low.
+                // This duplication is intentional for code clarity at the consumption site.
                 const memberInfo = lookUpObjectMember(baseTypeResult.type, memberName);
                 
                 if (memberInfo && memberInfo.isInstanceMember && isInstantiableClass(memberInfo.classType)) {
