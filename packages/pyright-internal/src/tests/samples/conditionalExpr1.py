@@ -35,13 +35,14 @@ def func1(plan: Wrapper | None):
 
 
 def func2(val: int | None):
-    # After this guard, val is known to be not None (truthy).
+    # After this guard, val is known to be truthy (not None and not 0).
     if not val:
         return
     
     # The else branch is unreachable since val is known to be truthy.
-    ts1: int = val if val else 0
-    assert_type(val if val else 0, int)
+    # Using different types to make the test meaningful.
+    ts1: int = val if val else "fallback"
+    assert_type(val if val else "fallback", int)
 
 
 def func3(val: str | None):
@@ -50,6 +51,7 @@ def func3(val: str | None):
         return
     
     # The if branch is unreachable since val is known to be falsy (None).
+    # Using different types to make the test meaningful.
     ts1: None = val if val else None
     assert_type(val if val else None, None)
 
@@ -60,9 +62,9 @@ def func4(val: int | None):
         return
     
     # The else branch is still reachable since val could be 0 (falsy).
-    # This test verifies that we don't over-narrow. The type should be int | Literal[0].
-    ts1: int = val if val else 0
-    assert_type(val if val else 0, int)
+    # This test verifies that we don't over-narrow.
+    ts1: int | str = val if val else "zero"
+    assert_type(val if val else "zero", int | str)
 
 
 def func5(val: int | None):
@@ -71,8 +73,9 @@ def func5(val: int | None):
         return
     
     # The else branch is unreachable since val is known to be truthy.
-    ts1: int = val if val else 0
-    assert_type(val if val else 0, int)
+    # Using different types to make the test meaningful.
+    ts1: int = val if val else "fallback"
+    assert_type(val if val else "fallback", int)
 
 
 def func6(val: list[int] | None):
