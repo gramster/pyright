@@ -69,5 +69,7 @@ def f_optional():
 
 
 # Validate inferred types
+# Note: Send type (2nd parameter) is Unknown, not None, because the generator
+# uses yield result (isYieldResultUsed=true) which defaults to Unknown
 reveal_type(f_0, expected_text="() -> Generator[int | str, Unknown, None]")
 reveal_type(f_optional, expected_text="() -> Generator[int | str, Unknown, None]")
