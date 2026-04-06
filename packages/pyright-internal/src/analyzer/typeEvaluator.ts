@@ -580,6 +580,12 @@ const maxInferFunctionReturnRecursionCount = 12;
 // type aliases.
 const maxRecursiveTypeAliasRecursionCount = 10;
 
+// Maximum depth for nested call expressions. This prevents excessive
+// recursion with deeply nested callable expressions that have TypeVarTuple
+// parameters. The limit is set conservatively to avoid breaking legitimate
+// deeply chained fluent APIs while still protecting against pathological cases.
+const maxCallEvaluationDepth = 10;
+
 // Normally a symbol can have only one type declaration, but there are
 // cases where multiple are possible (e.g. a property with a setter
 // and a deleter). In extreme cases, we need to limit the number of
@@ -659,8 +665,6 @@ export function createTypeEvaluator(
     let cancellationToken: CancellationToken | undefined;
     let printExpressionSpaceCount = 0;
     let incompleteGenCount = 0;
-    let typeEvaluationCount = 0;  // Track total type evaluations to prevent infinite loops
-    const maxTypeEvaluationCount = 1000;  // Bail out after this many evaluations
     const returnTypeInferenceContextStack: ReturnTypeInferenceContext[] = [];
     let returnTypeInferenceTypeCache: Map<number, TypeCacheEntry> | undefined;
     const signatureTrackerStack: SignatureTrackerStackEntry[] = [];
@@ -1248,13 +1252,6 @@ export function createTypeEvaluator(
         flags = EvalFlags.None,
         inferenceContext?: InferenceContext
     ): TypeResult {
-        // Protect against infinite loops in type evaluation by limiting total evaluations.
-        // This is a safety net for cases where recursion guards don't catch the issue.
-        typeEvaluationCount++;
-        if (typeEvaluationCount > maxTypeEvaluationCount) {
-            return { type: UnknownType.create() };
-        }
-
         let typeResult: TypeResult | undefined;
         let expectingInstantiable = (flags & EvalFlags.InstantiableType) !== 0;
 
@@ -8605,7 +8602,6 @@ export function createTypeEvaluator(
     ): TypeResult {
         // Protect against excessive call evaluation depth. This can occur
         // with deeply nested callable expressions that have TypeVarTuple parameters.
-        const maxCallEvaluationDepth = 10;
         if (callEvaluationDepth > maxCallEvaluationDepth) {
             return { type: UnknownType.create() };
         }
