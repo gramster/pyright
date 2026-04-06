@@ -1397,14 +1397,13 @@ export function isMaybeDescriptorInstance(type: Type, requireSetter = false): bo
         return false;
     }
 
-    // Use MRO lookup to check for __get__ (including inherited methods)
+    // Traverse MRO so descriptor subclasses are detected
     const getMember = lookUpObjectMember(type, '__get__');
     if (!getMember) {
         return false;
     }
 
     if (requireSetter) {
-        // Use MRO lookup to check for __set__ (including inherited methods)
         const setMember = lookUpObjectMember(type, '__set__');
         if (!setMember) {
             return false;

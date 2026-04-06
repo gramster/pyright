@@ -2461,9 +2461,8 @@ function narrowTypeForDiscriminatedFieldNoneComparison(
         }
 
         if (memberInfo && memberInfo.isTypeDeclared) {
-            // Check the declared type to see if it's a descriptor or property.
-            // We need to check this before calling getTypeOfMember, which applies
-            // descriptor resolution and returns the result type.
+            // Check the declared type before narrowing, since the member type
+            // below will be concretized and lose descriptor identity.
             const declaredType = evaluator.getDeclaredTypeOfSymbol(memberInfo.symbol)?.type;
             if (declaredType) {
                 // Check if any subtype of the declared type is a descriptor or property.
@@ -2472,10 +2471,9 @@ function narrowTypeForDiscriminatedFieldNoneComparison(
                     if (isProperty(declaredSubtype)) {
                         isDescriptorOrProperty = true;
                     } else if (isMaybeDescriptorInstance(declaredSubtype)) {
-                        // isMaybeDescriptorInstance now uses MRO lookup to detect inherited __get__
                         isDescriptorOrProperty = true;
                     } else if (isInstantiableClass(declaredSubtype)) {
-                        // Check if this instantiable class has __get__ (including inherited)
+                        // Handle instantiable classes (type annotations)
                         const getMember = lookUpClassMember(declaredSubtype, '__get__');
                         if (getMember) {
                             isDescriptorOrProperty = true;
