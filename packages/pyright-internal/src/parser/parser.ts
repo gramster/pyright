@@ -1353,6 +1353,16 @@ export class Parser {
             return itemList.parseError;
         }
 
+        // For empty list with no parse error, verify we're at the closing brace.
+        // Malformed patterns like {,} or {:} will have empty list but next token isn't }.
+        const nextToken = this._peekToken();
+        if (nextToken.type !== TokenType.CloseCurlyBrace) {
+            return this._handleExpressionParseError(
+                ErrorExpressionCategory.MissingPattern,
+                LocMessage.expectedCloseBrace()
+            );
+        }
+
         // Empty mapping patterns (e.g., `{}`) are valid and match any mapping.
         return PatternMappingNode.create(firstToken, itemList.list);
     }
