@@ -1,5 +1,5 @@
 # This sample tests the type analyzer's type narrowing logic for
-# Any type with "is None" checks.
+# Any and Unknown types with "is None" checks.
 
 # pyright: strict
 
@@ -16,3 +16,14 @@ def test_any_narrowing(x: Any):
 def test_any_list_comprehension(xs: list[Any]):
     filtered = [x for x in xs if isinstance(x, str) or x is None]
     reveal_type(filtered, expected_text="list[str | None]")
+
+
+def test_unknown_narrowing(x: int):
+    # Create an Unknown type
+    u = x.unknown_method()  # type: ignore
+    reveal_type(u, expected_text="Unknown")
+    
+    if u is None:
+        reveal_type(u, expected_text="None")
+    else:
+        reveal_type(u, expected_text="Unknown")
