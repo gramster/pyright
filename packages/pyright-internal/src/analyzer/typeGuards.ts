@@ -2465,7 +2465,6 @@ function narrowTypeForDiscriminatedFieldNoneComparison(
             // below will be concretized and lose descriptor identity.
             const declaredType = evaluator.getDeclaredTypeOfSymbol(memberInfo.symbol)?.type;
             if (declaredType) {
-                // Check if any subtype of the declared type is a descriptor or property.
                 let isDescriptorOrProperty = false;
                 doForEachSubtype(declaredType, (declaredSubtype) => {
                     if (isProperty(declaredSubtype)) {
@@ -2473,6 +2472,8 @@ function narrowTypeForDiscriminatedFieldNoneComparison(
                     } else if (isMaybeDescriptorInstance(declaredSubtype)) {
                         isDescriptorOrProperty = true;
                     } else if (isInstantiableClass(declaredSubtype)) {
+                        // Type annotations use instantiable form; check for __get__ since
+                        // isMaybeDescriptorInstance requires instance form.
                         const getMember = lookUpClassMember(declaredSubtype, '__get__');
                         if (getMember) {
                             isDescriptorOrProperty = true;
