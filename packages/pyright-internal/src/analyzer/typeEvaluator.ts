@@ -5628,11 +5628,22 @@ export function createTypeEvaluator(
             flags | EvalFlags.NoSpecialize
         );
 
-        // Fix for Sentinel narrowing regression: For dataclass instance members, if the retrieved
-        // type contains Unknown but the declared type contains a Sentinel, surgically replace
-        // Unknown subtypes with the corresponding Sentinel from the declared type. This prevents
-        // inferred parameter types (which add Unknown to Sentinel defaults) from leaking into
-        // field types while preserving any legitimate narrowing from getTypeOfMemberAccessWithBaseType.
+        // Fix for Sentinel narrowing regression in dataclass fields.
+        //
+        // Root cause: When getEffectiveTypeOfSymbolForUsage evaluates a dataclass field symbol,
+        // it should use the declared type annotation (per the hasTypedDeclarations contract at L23136).
+        // However, the effective type incorrectly contains Unknown instead of the Sentinel type.
+        // The underlying issue is that inferParamTypeFromDefaultValue (L19529) creates Sentinel|Unknown
+        // for unannotated parameters, and this inferred type somehow leaks into the field's effective
+        // type despite the field having an explicit type annotation. The exact leakage mechanism
+        // remains untraced, but may involve synthesized types, caching, or symbol resolution ordering.
+        //
+        // This consumption-site fix surgically replaces Unknown subtypes with the correct Sentinel
+        // types from the declared annotation, avoiding modification of shared type resolution
+        // infrastructure while preserving any legitimate narrowing from getTypeOfMemberAccessWithBaseType.
+        //
+        // TODO: Investigate root cause to potentially fix at the source (synthesizeDataClassMethods
+        // or getEffectiveTypeOfSymbol) rather than patching at consumption site.
         if (isClassInstance(baseTypeResult.type) && ClassType.isDataClass(baseTypeResult.type)) {
             if (typeResult.type && isUnion(typeResult.type)) {
                 const memberName = node.d.member.d.value;
@@ -5640,12 +5651,11 @@ export function createTypeEvaluator(
                 
                 if (memberInfo && memberInfo.isInstanceMember && isInstantiableClass(memberInfo.classType)) {
                     const declaredTypeInfo = getDeclaredTypeOfSymbol(memberInfo.symbol);
-                    let declaredType = declaredTypeInfo.type;
+                    const declaredType = declaredTypeInfo.type;
                     
                     if (declaredType && isUnion(declaredType)) {
                         // Check if we need to fix Unknown contamination
                         let hasUnknown = false;
-                        let sentinelSubtypes: Type[] = [];
                         
                         doForEachSubtype(typeResult.type, (subtype) => {
                             if (isUnknown(subtype)) {
@@ -5653,33 +5663,37 @@ export function createTypeEvaluator(
                             }
                         });
                         
-                        doForEachSubtype(declaredType, (subtype) => {
-                            if (isSentinelLiteral(subtype)) {
-                                sentinelSubtypes.push(subtype);
-                            }
-                        });
-                        
-                        if (hasUnknown && sentinelSubtypes.length > 0) {
-                            // Specialize the declared type to handle generic dataclasses
-                            declaredType = partiallySpecializeType(
+                        if (hasUnknown) {
+                            // Specialize the declared type for generic dataclasses (e.g., T|MISSING → int|MISSING)
+                            const specializedDeclaredType = partiallySpecializeType(
                                 declaredType,
                                 memberInfo.classType,
                                 getTypeClassType(),
                                 /* selfClass */ undefined
                             );
                             
-                            // Surgically replace Unknown subtypes with Sentinel subtypes from declared type
-                            const fixedSubtypes: Type[] = [];
-                            doForEachSubtype(typeResult.type, (subtype) => {
-                                if (isUnknown(subtype)) {
-                                    // Replace with Sentinels from declared type
-                                    sentinelSubtypes.forEach((sentinel) => fixedSubtypes.push(sentinel));
-                                } else {
-                                    fixedSubtypes.push(subtype);
+                            // Collect Sentinel subtypes from the specialized declared type
+                            const sentinelSubtypes: Type[] = [];
+                            doForEachSubtype(specializedDeclaredType, (subtype) => {
+                                if (isSentinelLiteral(subtype)) {
+                                    sentinelSubtypes.push(subtype);
                                 }
                             });
                             
-                            typeResult.type = combineTypes(fixedSubtypes);
+                            if (sentinelSubtypes.length > 0) {
+                                // Surgically replace Unknown subtypes with Sentinels from declared type
+                                const fixedSubtypes: Type[] = [];
+                                doForEachSubtype(typeResult.type, (subtype) => {
+                                    if (isUnknown(subtype)) {
+                                        // Replace with Sentinels from specialized declared type
+                                        sentinelSubtypes.forEach((sentinel) => fixedSubtypes.push(sentinel));
+                                    } else {
+                                        fixedSubtypes.push(subtype);
+                                    }
+                                });
+                                
+                                typeResult.type = combineTypes(fixedSubtypes);
+                            }
                         }
                     }
                 }
