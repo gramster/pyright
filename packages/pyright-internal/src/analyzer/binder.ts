@@ -1268,7 +1268,8 @@ export class Binder extends ParseTreeWalker {
         });
 
         // For guaranteed loops, add post-body exit path.
-        // If there's a break, _currentFlowNode is unreachable and this does nothing.
+        // If there's an unconditional break, _currentFlowNode is unreachable and this does nothing.
+        // For conditional breaks, _currentFlowNode remains reachable (the non-break path).
         // If there's no break, this allows the else clause to be reached after loop completion.
         if (isGuaranteedToExecute) {
             this._addAntecedent(preElseLabel, this._currentFlowNode!);

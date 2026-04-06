@@ -66,7 +66,7 @@ def test_string_literal():
     """Variable assigned in for loop over string literal should still be reported as possibly unbound (not implemented)."""
     for x in "abc":
         f = "string"
-    # This should generate an error because string literals are not supported in this PR
+    # This should generate an error because string literals are not yet supported
     del f
 
 
