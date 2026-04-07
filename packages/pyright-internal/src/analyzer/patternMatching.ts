@@ -1423,6 +1423,9 @@ function getSequencePatternInfo(
                     // If the tuple contains an indeterminate entry, expand or remove that
                     // entry to match the length of the pattern if possible.
                     let expandedIndeterminate = false;
+                    // Tracks whether the indeterminate entry was spliced out to contract the tuple
+                    // to fit a shorter pattern. This preserves "potential match" semantics after
+                    // the splice resets tupleIndeterminateIndex to -1.
                     let removedIndeterminate = false;
                     if (tupleIndeterminateIndex >= 0) {
                         tupleDeterminateEntryCount--;
