@@ -146,5 +146,5 @@ regular = RegularClass()
 # Regular class should still show the type contamination (not fixed by this patch)
 # This confirms the fix is intentionally scoped to dataclasses only
 # NOTE: This asserts current broken behavior (str | Unknown). When the root cause
-# (TODO at line 5649 in typeEvaluator.ts) is fixed, this should change to "str | MISSING"
+# (TODO in getTypeOfMemberAccess: "Investigate root cause") is fixed, this should change to "str | MISSING"
 reveal_type(regular.name, expected_text="str | Unknown")
