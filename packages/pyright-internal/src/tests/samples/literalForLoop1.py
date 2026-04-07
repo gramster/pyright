@@ -92,7 +92,9 @@ def test_all_continue_loop():
     for x in [1, 2, 3]:
         continue
     # Post-loop code should be reachable.
-    # However, x is possibly unbound in this degenerate case since the loop body never completes normally.
+    # x appears possibly unbound because the save/restore fallback uses the loop-header state
+    # which includes the pre-assignment entry path.
     i = x  # This should generate an error
+
 
 
