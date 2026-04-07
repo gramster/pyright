@@ -582,9 +582,11 @@ const maxRecursiveTypeAliasRecursionCount = 10;
 
 // Maximum depth for nested call expressions. This prevents excessive
 // recursion with deeply nested callable expressions that have TypeVarTuple
-// parameters. The limit is set conservatively to avoid breaking legitimate
-// deeply chained fluent APIs while still protecting against pathological cases.
-const maxCallEvaluationDepth = 10;
+// parameters. The limit is set higher than typical recursion limits to
+// accommodate legitimate deeply chained fluent APIs (SQLAlchemy query
+// builders, pandas method chaining, etc.) while still protecting against
+// pathological cases.
+const maxCallEvaluationDepth = 20;
 
 // Normally a symbol can have only one type declaration, but there are
 // cases where multiple are possible (e.g. a property with a setter
