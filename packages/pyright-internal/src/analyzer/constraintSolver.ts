@@ -274,7 +274,6 @@ function solveTypeVarRecursive(
 ): Type | undefined {
     // Protect against excessive recursion depth.
     if (recursionCount > maxTypeRecursionCount) {
-        // console.log(`solveTypeVarRecursive: Hit recursion limit at depth ${recursionCount}`);
         return undefined;
     }
 
@@ -293,23 +292,17 @@ function solveTypeVarRecursive(
         // prohibitively expensive.
         if (recursionCount >= maxTypeRecursionCount / 2) {
             // At half the recursion limit, stop trying to solve dependent types.
-            // console.log(`solveTypeVarRecursive: Stopping dependent type solving at depth ${recursionCount}`);
             solutionSet.setType(entry.typeVar, value);
             return value;
         }
 
         // Are there any unsolved TypeVars in this type?
-        const typeVars = getTypeVarArgsRecursive(value, recursionCount);
+        const typeVars = getTypeVarArgsRecursive(value);
 
-        // Limit the number of dependent TypeVars we attempt to solve to prevent
-        // exponential expansion with deeply nested callable types.
-        const maxDependentTypeVars = 32;
-        const typeVarsToSolve = typeVars.slice(0, maxDependentTypeVars);
-
-        if (typeVarsToSolve.length > 0) {
+        if (typeVars.length > 0) {
             const dependentSolution = new ConstraintSolution();
 
-            for (const typeVar of typeVarsToSolve) {
+            for (const typeVar of typeVars) {
                 // Don't attempt to replace a TypeVar with itself.
                 if (isTypeSame(typeVar, entry.typeVar, { ignoreTypeFlags: true })) {
                     continue;
@@ -816,10 +809,7 @@ function assignUnconstrainedTypeVar(
                 } else {
                     newLowerBound = curLowerBound;
 
-                    // Don't recursively solve constraints when we're already solving TypeVars.
-                    // This prevents exponential behavior with deeply nested callable types.
-                    // The constraint solving will happen at the top level instead.
-                    if (constraints && recursionCount === 0) {
+                    if (constraints) {
                         newLowerBound = evaluator.solveAndApplyConstraints(newLowerBound, constraints);
                     }
                 }
@@ -880,10 +870,7 @@ function assignUnconstrainedTypeVar(
 
                     let curSolvedLowerBound = curLowerBound;
 
-                    // Don't recursively solve constraints when we're already solving TypeVars.
-                    // This prevents exponential behavior with deeply nested callable types.
-                    // The constraint solving will happen at the top level instead.
-                    if (constraints && recursionCount === 0) {
+                    if (constraints) {
                         curSolvedLowerBound = evaluator.solveAndApplyConstraints(curLowerBound, constraints);
                     }
 
