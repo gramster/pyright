@@ -362,6 +362,7 @@ import {
     requiresTypeArgs,
     selfSpecializeClass,
     simplifyFunctionToParamSpec,
+    someSubtypes,
     sortTypes,
     specializeForBaseClass,
     specializeTupleClass,
@@ -5661,13 +5662,7 @@ export function createTypeEvaluator(
                     
                     if (declaredType && isUnion(declaredType)) {
                         // Check if we need to fix Unknown contamination
-                        let hasUnknown = false;
-                        
-                        doForEachSubtype(typeResult.type, (subtype) => {
-                            if (isUnknown(subtype)) {
-                                hasUnknown = true;
-                            }
-                        });
+                        const hasUnknown = someSubtypes(typeResult.type, (subtype) => isUnknown(subtype));
                         
                         if (hasUnknown) {
                             // Specialize the declared type for generic dataclasses (e.g., T|MISSING → int|MISSING)
@@ -5686,19 +5681,28 @@ export function createTypeEvaluator(
                                 }
                             });
                             
-                            if (sentinelSubtypes.length > 0) {
-                                // Surgically replace Unknown subtypes with Sentinels from declared type
+                            // Only replace Unknown if the declared type doesn't legitimately contain Unknown
+                            // (to avoid hiding real type resolution problems like unresolved imports)
+                            const declaredHasUnknown = someSubtypes(specializedDeclaredType, (subtype) => isUnknown(subtype));
+                            
+                            if (sentinelSubtypes.length > 0 && !declaredHasUnknown) {
+                                // Filter out all Unknown subtypes and append sentinels once to avoid N×M expansion
                                 const fixedSubtypes: Type[] = [];
+                                let foundUnknown = false;
+                                
                                 doForEachSubtype(typeResult.type, (subtype) => {
                                     if (isUnknown(subtype)) {
-                                        // Replace with Sentinels from specialized declared type
-                                        sentinelSubtypes.forEach((sentinel) => fixedSubtypes.push(sentinel));
+                                        foundUnknown = true;
                                     } else {
                                         fixedSubtypes.push(subtype);
                                     }
                                 });
                                 
-                                typeResult.type = combineTypes(fixedSubtypes);
+                                if (foundUnknown) {
+                                    // Append all sentinels once
+                                    sentinelSubtypes.forEach((sentinel) => fixedSubtypes.push(sentinel));
+                                    typeResult.type = combineTypes(fixedSubtypes);
+                                }
                             }
                         }
                     }

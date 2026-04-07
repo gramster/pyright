@@ -135,3 +135,14 @@ if g_str.value is MISSING:
     reveal_type(g_str.value, expected_text="MISSING")
 else:
     reveal_type(g_str.value, expected_text="str")
+
+
+# Test that the fix is scoped to dataclasses only - regular classes should not be affected
+class RegularClass:
+    name: str | MISSING = MISSING
+
+
+regular = RegularClass()
+# Regular class should still show the type contamination (not fixed by this patch)
+# This confirms the fix is intentionally scoped to dataclasses only
+reveal_type(regular.name, expected_text="str | Unknown")
