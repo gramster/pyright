@@ -13,6 +13,14 @@ def test_any_narrowing(x: Any):
         reveal_type(x, expected_text="Any")
 
 
+def test_any_equality_narrowing(x: Any):
+    # Test == None operator (narrowTypeForIsNone handles both is and ==)
+    if x == None:
+        reveal_type(x, expected_text="None")
+    else:
+        reveal_type(x, expected_text="Any")
+
+
 def test_any_list_comprehension(xs: list[Any]):
     filtered = [x for x in xs if isinstance(x, str) or x is None]
     reveal_type(filtered, expected_text="list[str | None]")

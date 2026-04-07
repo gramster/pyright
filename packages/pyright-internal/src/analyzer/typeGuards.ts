@@ -42,7 +42,6 @@ import {
     FunctionParamFlags,
     FunctionType,
     FunctionTypeFlags,
-    isAny,
     isAnyOrUnknown,
     isClass,
     isClassInstance,
