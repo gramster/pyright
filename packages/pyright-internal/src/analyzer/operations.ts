@@ -779,7 +779,10 @@ function isBoolLiteralName(expr: ExpressionNode, exprType: Type, evaluator: Type
 
     // Check for `not <Name>` expressions
     if (expr.nodeType === ParseNodeType.UnaryOperation && expr.d.operator === OperatorType.Not) {
-        // Evaluate the inner expression's type (not the `not` expression's type)
+        // Evaluate the inner expression's type (not the `not` expression's type).
+        // Note: makeTopLevelTypeVarsConcrete is needed here for the isClassInstance/
+        // ClassType.isBuiltIn checks, unlike the outer call site which was removed
+        // because canBeTruthy/canBeFalsy do it internally.
         const innerType = evaluator.makeTopLevelTypeVarsConcrete(
             evaluator.getTypeOfExpression(expr.d.expr).type
         );
