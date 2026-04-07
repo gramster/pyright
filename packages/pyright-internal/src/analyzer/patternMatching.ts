@@ -1308,6 +1308,7 @@ function getMappingPatternInfo(evaluator: TypeEvaluator, type: Type, node: Patte
             if (!mappingType || !isInstantiableClass(mappingType)) {
                 // If we can't get the Mapping type, we can't determine if this is a mapping.
                 // Add it as unknown to avoid losing the subtype.
+                // TODO: Add test coverage for missing-typeshed fallback.
                 mappingInfo.push({
                     subtype,
                     isDefinitelyMapping: false,

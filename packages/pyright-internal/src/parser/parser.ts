@@ -1359,7 +1359,10 @@ export class Parser {
         if (nextToken.type !== TokenType.CloseCurlyBrace) {
             return this._handleExpressionParseError(
                 ErrorExpressionCategory.MissingPattern,
-                LocMessage.expectedCloseBrace()
+                LocMessage.expectedCloseBrace(),
+                undefined,
+                undefined,
+                [TokenType.CloseCurlyBrace]
             );
         }
 
