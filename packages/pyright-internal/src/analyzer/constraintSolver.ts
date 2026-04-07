@@ -38,7 +38,6 @@ import {
     isUnknown,
     isUnpacked,
     isUnpackedClass,
-    maxTypeRecursionCount,
     ParamSpecType,
     TupleTypeArg,
     Type,
