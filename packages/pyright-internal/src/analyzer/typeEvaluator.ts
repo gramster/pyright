@@ -5648,7 +5648,11 @@ export function createTypeEvaluator(
         //
         // TODO: Investigate root cause to potentially fix at the source (synthesizeDataClassMethods
         // or getEffectiveTypeOfSymbol) rather than patching at consumption site.
-        if (isClassInstance(baseTypeResult.type) && ClassType.isDataClass(baseTypeResult.type)) {
+        if (
+            isClassInstance(baseTypeResult.type) &&
+            ClassType.isDataClass(baseTypeResult.type) &&
+            !typeResult.isIncomplete
+        ) {
             if (typeResult.type && isUnion(typeResult.type)) {
                 const memberName = node.d.member.d.value;
                 // Note: lookUpObjectMember and getDeclaredTypeOfSymbol repeat work done inside
