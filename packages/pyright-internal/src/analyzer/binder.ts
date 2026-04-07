@@ -1271,8 +1271,23 @@ export class Binder extends ParseTreeWalker {
         // If there's an unconditional break, _currentFlowNode is unreachable and this does nothing.
         // For conditional breaks, _currentFlowNode remains reachable (the non-break path).
         // If there's no break, this allows the else clause to be reached after loop completion.
+        // For all-continue bodies, _currentFlowNode is unreachable, so we need to temporarily
+        // make it reachable to bypass _addAntecedent's guard, but use preForLabel as the actual antecedent
+        // since it has accumulated the continue back-edges.
         if (isGuaranteedToExecute) {
-            this._addAntecedent(preElseLabel, this._currentFlowNode!);
+            if (
+                this._currentFlowNode!.flags &
+                (FlowFlags.UnreachableStructural | FlowFlags.UnreachableStaticCondition)
+            ) {
+                // All paths end with break/continue/return - use preForLabel which has the loop state
+                const savedFlowNode = this._currentFlowNode!;
+                this._currentFlowNode = preForLabel;
+                this._addAntecedent(preElseLabel, preForLabel);
+                this._currentFlowNode = savedFlowNode;
+            } else {
+                // Normal completion or conditional break - use current flow node
+                this._addAntecedent(preElseLabel, this._currentFlowNode!);
+            }
         }
 
         this._currentFlowNode = this._finishFlowLabel(preElseLabel);

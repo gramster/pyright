@@ -86,3 +86,13 @@ def test_list_comprehension():
     # This should generate an error because h is possibly unbound
     del h
 
+
+def test_all_continue_loop():
+    """Test that post-loop code is reachable even when all paths in loop body end with continue."""
+    for x in [1, 2, 3]:
+        continue
+    # Post-loop code should be reachable.
+    # However, x is possibly unbound in this degenerate case since the loop body never completes normally.
+    i = x  # This should generate an error
+
+
