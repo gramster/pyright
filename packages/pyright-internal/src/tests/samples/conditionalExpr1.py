@@ -51,9 +51,10 @@ def func3(val: str | None):
         return
     
     # The if branch is unreachable since val is known to be falsy (None).
-    # Using different types to make the test meaningful.
-    ts1: None = val if val else None
-    assert_type(val if val else None, None)
+    # Using different types to make the test meaningful - without pruning,
+    # this would be str | None instead of just None.
+    ts1: None = "unreachable" if val else None
+    assert_type("unreachable" if val else None, None)
 
 
 def func4(val: int | None):
