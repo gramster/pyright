@@ -295,15 +295,6 @@ function solveTypeVarRecursive(
         const typeVars = getTypeVarArgsRecursive(value);
 
         if (typeVars.length > 0) {
-            // Limit recursion depth for extracting dependent TypeVars. For deeply nested
-            // types (e.g., nested callable expressions), extracting all TypeVars can be
-            // prohibitively expensive. At half the recursion limit, stop trying to solve
-            // dependent types and leave this TypeVar unsolved rather than returning a
-            // partial solution with unsolved dependencies.
-            if (recursionCount >= maxConstraintSolvingDepth / 2) {
-                return undefined;
-            }
-
             const dependentSolution = new ConstraintSolution();
 
             for (const typeVar of typeVars) {
