@@ -291,21 +291,19 @@ function solveTypeVarRecursive(
     let value = getTypeVarType(evaluator, constraintSet, entry.typeVar, options?.useLowerBoundOnly);
 
     if (value) {
-        // Limit recursion depth for extracting dependent TypeVars. For deeply nested
-        // types (e.g., nested callable expressions), extracting all TypeVars can be
-        // prohibitively expensive. Return undefined to leave the TypeVar unsolved
-        // rather than returning a partial solution with unsolved dependencies.
-        if (recursionCount >= maxConstraintSolvingDepth / 2) {
-            // At half the recursion limit, stop trying to solve dependent types
-            // and leave this TypeVar unsolved.
-            solutionSet.setType(entry.typeVar, undefined);
-            return undefined;
-        }
-
         // Are there any unsolved TypeVars in this type?
         const typeVars = getTypeVarArgsRecursive(value);
 
         if (typeVars.length > 0) {
+            // Limit recursion depth for extracting dependent TypeVars. For deeply nested
+            // types (e.g., nested callable expressions), extracting all TypeVars can be
+            // prohibitively expensive. At half the recursion limit, stop trying to solve
+            // dependent types and leave this TypeVar unsolved rather than returning a
+            // partial solution with unsolved dependencies.
+            if (recursionCount >= maxConstraintSolvingDepth / 2) {
+                return undefined;
+            }
+
             const dependentSolution = new ConstraintSolution();
 
             for (const typeVar of typeVars) {
