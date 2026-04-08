@@ -23304,7 +23304,12 @@ export function createTypeEvaluator(
                     const usageScope = ParseTreeUtils.getExecutionScopeNode(usageNode);
                     const declScope = ParseTreeUtils.getExecutionScopeNode(decl.node);
                     if (usageScope === declScope) {
-                        if (!isFlowPathBetweenNodes(decl.node, usageNode)) {
+                        // Skip declarations that appear after the usage in the source.
+                        // Such declarations can only be reached via loop back-edges, and
+                        // including them causes circular evaluation (producing Unknown).
+                        // Declarations that textually precede the usage are retained so
+                        // that order-independent type aliases resolve correctly.
+                        if (decl.node.start >= usageNode.start) {
                             return;
                         }
                     }
