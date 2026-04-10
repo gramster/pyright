@@ -362,6 +362,7 @@ import {
     requiresTypeArgs,
     selfSpecializeClass,
     simplifyFunctionToParamSpec,
+    someSubtypes,
     sortTypes,
     specializeForBaseClass,
     specializeTupleClass,
@@ -1718,7 +1719,7 @@ export function createTypeEvaluator(
         if (
             node.d.strings.length !== 1 ||
             node.d.strings[0].nodeType !== ParseNodeType.String ||
-            (!isTypeFormSupported(node) && !isInferenceContextTypeForm(inferenceContext))
+            !isInferenceContextTypeForm(inferenceContext)
         ) {
             return typeResult;
         }
@@ -1745,25 +1746,12 @@ export function createTypeEvaluator(
 
         const typeFormResult = getTypeOfStringListAsType(node, flags);
         if (typeFormResult.type.props?.typeForm) {
+            // The TypeForm-aware evaluation already set the typeForm prop.
+            // This happens when all components of the type expression have TypeForm metadata.
             typeResult.type = TypeBase.cloneWithTypeForm(typeResult.type, typeFormResult.type.props.typeForm);
-        } else if (inferenceContext && isInferenceContextTypeForm(inferenceContext)) {
-            // In a TypeForm inference context without experimental features, extract
-            // the TypeForm value from the parsed type directly.
-            const parsedType = typeFormResult.type;
-            let typeFormValue: Type | undefined;
-
-            if (isClass(parsedType) && TypeBase.isInstantiable(parsedType) && !ClassType.isSpecialBuiltIn(parsedType)) {
-                typeFormValue = ClassType.cloneAsInstance(parsedType);
-            } else if (isUnion(parsedType)) {
-                typeFormValue = TypeBase.cloneAsSpecialForm(parsedType, undefined);
-            } else if (isTypeVar(parsedType) && TypeBase.isInstantiable(parsedType)) {
-                typeFormValue = convertToInstance(parsedType);
-            }
-
-            if (typeFormValue) {
-                typeResult.type = TypeBase.cloneWithTypeForm(typeResult.type, typeFormValue);
-            }
         }
+        // Note: if typeForm prop is absent (e.g., Union[int] with invalid arg count, or a
+        // free TypeVar), we intentionally leave the string as-is so assignType will reject it.
 
         return typeResult;
     }
@@ -25544,15 +25532,9 @@ export function createTypeEvaluator(
     // type has an implicit TypeForm type that can be assigned to it. If so,
     // convert to an explicit TypeForm type.
     function convertToTypeFormType(expectedType: Type, srcType: Type): Type {
-        // Check whether the expected type contains a TypeForm subtype.
-        let hasTypeFormExpected = false;
-        doForEachSubtype(expectedType, (subtype) => {
-            if (isClassInstance(subtype) && ClassType.isBuiltIn(subtype, 'TypeForm')) {
-                hasTypeFormExpected = true;
-            }
-        });
-
-        if (!hasTypeFormExpected) {
+        // Check whether the expected type contains a TypeForm subtype using
+        // someSubtypes for short-circuit evaluation.
+        if (!someSubtypes(expectedType, (subtype) => isClassInstance(subtype) && ClassType.isBuiltIn(subtype, 'TypeForm'))) {
             return srcType;
         }
 
@@ -25560,19 +25542,19 @@ export function createTypeEvaluator(
 
         // Determine the TypeForm type from the source.
         if (srcType.props?.typeForm) {
-            // TypeForm info is already set (experimental mode with TypeForm-aware evaluation).
+            // TypeForm info is already set (TypeForm-aware evaluation set the prop).
             srcTypeFormType = srcType.props.typeForm;
         } else if (isClass(srcType)) {
             if (TypeBase.isInstantiable(srcType)) {
                 if (!ClassType.isSpecialBuiltIn(srcType)) {
-                    srcTypeFormType = ClassType.cloneAsInstance(srcType);
+                    srcTypeFormType = ClassType.cloneAsInstance(specializeWithDefaultTypeArgs(srcType));
                 }
             } else if (ClassType.isBuiltIn(srcType, 'type')) {
                 srcTypeFormType =
                     srcType.priv.typeArgs?.length && srcType.priv.typeArgs.length > 0
                         ? srcType.priv.typeArgs[0]
                         : UnknownType.create();
-            } else if (ClassType.isBuiltIn(srcType, 'None')) {
+            } else if (isNoneInstance(srcType)) {
                 // None as a TypeForm value represents the NoneType type.
                 srcTypeFormType = srcType;
             }
@@ -25581,9 +25563,31 @@ export function createTypeEvaluator(
                 srcTypeFormType = convertToInstance(srcType);
             }
         } else if (isUnion(srcType)) {
-            // Union types (e.g., str | None) are valid TypeForm values.
-            // Strip any specialForm (like UnionType) to get the pure union type.
-            srcTypeFormType = TypeBase.cloneAsSpecialForm(srcType, undefined);
+            // Union types (e.g., str | None) may be valid TypeForm values, but only
+            // if ALL subtypes are valid TypeForm components (i.e., they are types,
+            // not runtime values). For example, int | var1 where var1=1 is invalid
+            // because Literal[1] is a runtime value accessed via variable, not a type.
+            const isValidUnion = srcType.priv.subtypes.every(
+                (subtype) =>
+                    (isInstantiableClass(subtype) && !ClassType.isSpecialBuiltIn(subtype)) ||
+                    isNoneInstance(subtype) ||
+                    (isTypeVar(subtype) && TypeBase.isInstantiable(subtype)) ||
+                    isAnyOrUnknown(subtype) ||
+                    subtype.props?.typeForm !== undefined
+            );
+            if (isValidUnion) {
+                // Build the TypeForm representation of the union.
+                const typeFormSubtypes = srcType.priv.subtypes.map((subtype) => {
+                    if (isInstantiableClass(subtype) && !ClassType.isSpecialBuiltIn(subtype)) {
+                        return ClassType.cloneAsInstance(specializeWithDefaultTypeArgs(subtype));
+                    } else if (isTypeVar(subtype) && TypeBase.isInstantiable(subtype)) {
+                        return convertToInstance(subtype);
+                    }
+                    // None instances, Any/Unknown, and already-TypeForm-valued subtypes pass through.
+                    return subtype.props?.typeForm ?? subtype;
+                });
+                srcTypeFormType = combineTypes(typeFormSubtypes);
+            }
         } else if (isAny(srcType)) {
             // Any is compatible with any TypeForm type.
             srcTypeFormType = AnyType.create();
@@ -28661,11 +28665,12 @@ export function createTypeEvaluator(
         return { sourceType: simpleSrcType, destType: simpleDestType };
     }
 
-    function isTypeFormSupported(node: ParseNode) {
-        const fileInfo = AnalyzerNodeInfo.getFileInfo(node);
-
-        // For now, enable only if enableExperimentalFeatures is true.
-        return fileInfo.diagnosticRuleSet.enableExperimentalFeatures;
+    function isTypeFormSupported(_node: ParseNode) {
+        // TypeForm is available via typing_extensions for all Python versions, and
+        // will be in the typing stdlib for Python 3.14+. Rather than gating on a
+        // specific Python version, we always enable TypeForm support since the
+        // typing_extensions package is available at any Python version.
+        return true;
     }
 
     // Returns true if the inference context's expected type contains a TypeForm subtype.
@@ -28674,14 +28679,10 @@ export function createTypeEvaluator(
             return false;
         }
 
-        let found = false;
-        doForEachSubtype(inferenceContext.expectedType, (subtype) => {
-            if (isClassInstance(subtype) && ClassType.isBuiltIn(subtype, 'TypeForm')) {
-                found = true;
-            }
-        });
-
-        return found;
+        return someSubtypes(
+            inferenceContext.expectedType,
+            (subtype) => isClassInstance(subtype) && ClassType.isBuiltIn(subtype, 'TypeForm')
+        );
     }
 
     function printType(type: Type, options?: PrintTypeOptions): string {
