@@ -581,6 +581,14 @@ const maxInferFunctionReturnRecursionCount = 12;
 // type aliases.
 const maxRecursiveTypeAliasRecursionCount = 10;
 
+// Maximum depth for nested call expressions. This prevents excessive
+// recursion with deeply nested callable expressions that have TypeVarTuple
+// parameters. The limit is set higher than typical recursion limits to
+// accommodate legitimate deeply chained fluent APIs (SQLAlchemy query
+// builders, pandas method chaining, etc.) while still protecting against
+// pathological cases.
+const maxCallEvaluationDepth = 20;
+
 // Normally a symbol can have only one type declaration, but there are
 // cases where multiple are possible (e.g. a property with a setter
 // and a deleter). In extreme cases, we need to limit the number of
@@ -668,6 +676,7 @@ export function createTypeEvaluator(
     const returnTypeInferenceContextStack: ReturnTypeInferenceContext[] = [];
     let returnTypeInferenceTypeCache: Map<number, TypeCacheEntry> | undefined;
     const signatureTrackerStack: SignatureTrackerStackEntry[] = [];
+    let callEvaluationDepth = 0;  // Track call expression evaluation depth
     let prefetched: Partial<PrefetchedTypes> | undefined;
 
     function runWithCancellationToken<T>(token: CancellationToken, callback: () => T): T;
@@ -8617,6 +8626,25 @@ export function createTypeEvaluator(
     }
 
     function getTypeOfCall(
+        node: CallNode,
+        flags: EvalFlags,
+        inferenceContext: InferenceContext | undefined
+    ): TypeResult {
+        // Protect against excessive call evaluation depth. This can occur
+        // with deeply nested callable expressions that have TypeVarTuple parameters.
+        if (callEvaluationDepth > maxCallEvaluationDepth) {
+            return { type: UnknownType.create() };
+        }
+
+        callEvaluationDepth++;
+        try {
+            return getTypeOfCallInternal(node, flags, inferenceContext);
+        } finally {
+            callEvaluationDepth--;
+        }
+    }
+
+    function getTypeOfCallInternal(
         node: CallNode,
         flags: EvalFlags,
         inferenceContext: InferenceContext | undefined

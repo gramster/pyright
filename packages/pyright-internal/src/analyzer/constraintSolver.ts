@@ -77,6 +77,11 @@ import {
 // point. This constant determines the cap.
 const maxSubtypeCountForTypeVarLowerBound = 64;
 
+// Maximum depth for constraint-solving dependencies. This prevents excessive
+// recursion when solving TypeVars that depend on other TypeVars, which can
+// occur with deeply nested callable types.
+const maxConstraintSolvingDepth = 20;
+
 // This debugging switch enables logging of the constraints before and
 // after it is updated by the constraint solver.
 const logConstraintsUpdates = false;
@@ -257,7 +262,7 @@ export function solveConstraintSet(
 
     // Solve the type variables.
     constraintSet.doForEachTypeVar((entry) => {
-        solveTypeVarRecursive(evaluator, constraintSet, options, solutionSet, entry);
+        solveTypeVarRecursive(evaluator, constraintSet, options, solutionSet, entry, 0);
     });
 
     return solutionSet;
@@ -268,8 +273,14 @@ function solveTypeVarRecursive(
     constraintSet: ConstraintSet,
     options: SolveConstraintsOptions | undefined,
     solutionSet: ConstraintSolutionSet,
-    entry: TypeVarConstraints
+    entry: TypeVarConstraints,
+    recursionCount: number
 ): Type | undefined {
+    // Protect against excessive recursion depth.
+    if (recursionCount > maxConstraintSolvingDepth) {
+        return undefined;
+    }
+
     // If this TypeVar already has a solution, don't attempt to re-solve it.
     if (solutionSet.hasType(entry.typeVar)) {
         return solutionSet.getType(entry.typeVar);
@@ -307,7 +318,8 @@ function solveTypeVarRecursive(
                     constraintSet,
                     options,
                     solutionSet,
-                    dependentEntry
+                    dependentEntry,
+                    recursionCount + 1
                 );
 
                 if (dependentType) {
