@@ -299,6 +299,8 @@ export namespace Localizer {
         export const classAlreadySpecialized = () =>
             new ParameterizedString<{ type: string }>(getRawString('Diagnostic.classAlreadySpecialized'));
         export const classDecoratorTypeUnknown = () => getRawString('Diagnostic.classDecoratorTypeUnknown');
+        export const classDisjointBaseInvalid = () =>
+            new ParameterizedString<{ type: string }>(getRawString('Diagnostic.classDisjointBaseInvalid'));
         export const classDefinitionCycle = () =>
             new ParameterizedString<{ name: string }>(getRawString('Diagnostic.classDefinitionCycle'));
         export const classGetItemClsParam = () => getRawString('Diagnostic.classGetItemClsParam');
@@ -451,6 +453,8 @@ export namespace Localizer {
         export const duplicateStarStarPattern = () => getRawString('Diagnostic.duplicateStarStarPattern');
         export const duplicatePositionOnly = () => getRawString('Diagnostic.duplicatePositionOnly');
         export const duplicateUnpack = () => getRawString('Diagnostic.duplicateUnpack');
+        export const disjointBaseClassDecoratorOnly = () =>
+            getRawString('Diagnostic.disjointBaseClassDecoratorOnly');
         export const ellipsisAfterUnpacked = () => getRawString('Diagnostic.ellipsisAfterUnpacked');
         export const ellipsisContext = () => getRawString('Diagnostic.ellipsisContext');
         export const ellipsisSecondArg = () => getRawString('Diagnostic.ellipsisSecondArg');

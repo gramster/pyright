@@ -100,6 +100,7 @@ __all__ = [
     "ValuesView",
     "TYPE_CHECKING",
     "cast",
+    "disjoint_base",
     "final",
     "get_args",
     "get_origin",
@@ -464,6 +465,7 @@ class _ProtocolMeta(ABCMeta):
 # Abstract base classes.
 
 def runtime_checkable(cls: _TC) -> _TC: ...
+def disjoint_base(cls: _TC) -> _TC: ...
 @runtime_checkable
 class SupportsInt(Protocol, metaclass=ABCMeta):
     __slots__ = ()

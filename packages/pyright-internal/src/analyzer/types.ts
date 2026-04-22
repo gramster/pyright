@@ -707,6 +707,8 @@ export interface ClassDetailsShared {
     typedDictEntries?: TypedDictEntries | undefined;
     typedDictExtraItemsExpr?: ExpressionNode | undefined;
     localSlotsNames?: string[];
+    isDisjointBase: boolean;
+    disjointBase?: ClassType | undefined;
 
     // If the class is decorated with a @deprecated decorator, this
     // string provides the message to be displayed when the class
@@ -878,6 +880,8 @@ export namespace ClassType {
                 fields: new Map<string, Symbol>(),
                 typeParams: [],
                 docString,
+                isDisjointBase: false,
+                disjointBase: undefined,
             },
             priv: {},
         };
@@ -1251,6 +1255,14 @@ export namespace ClassType {
 
     export function isFinal(classType: ClassType) {
         return !!(classType.shared.flags & ClassTypeFlags.Final);
+    }
+
+    export function isDisjointBase(classType: ClassType) {
+        return classType.shared.isDisjointBase;
+    }
+
+    export function getDisjointBase(classType: ClassType) {
+        return classType.shared.disjointBase;
     }
 
     export function isProtocolClass(classType: ClassType) {

@@ -368,6 +368,8 @@ export class Checker extends ParseTreeWalker {
 
             this._validateMultipleInheritanceCompatibility(classTypeResult.classType, node.d.name);
 
+            this._validateDisjointBaseClass(classTypeResult.classType, node);
+
             this._validateConstructorConsistency(classTypeResult.classType, node.d.name);
 
             this._validateFinalMemberOverrides(classTypeResult.classType);
@@ -5155,6 +5157,20 @@ export class Checker extends ParseTreeWalker {
 
     // If a class is marked final, it must implement all abstract methods,
     // otherwise it is of no use.
+    private _validateDisjointBaseClass(classType: ClassType, classNode: ClassNode) {
+        if (ClassType.isTypedDictClass(classType) || ClassType.isProtocolClass(classType)) {
+            return;
+        }
+
+        if (!ClassType.getDisjointBase(classType)) {
+            this._evaluator.addDiagnostic(
+                DiagnosticRule.reportGeneralTypeIssues,
+                LocMessage.classDisjointBaseInvalid().format({ type: classType.shared.name }),
+                classNode.d.name
+            );
+        }
+    }
+
     private _validateFinalClassNotAbstract(classType: ClassType, errorNode: ClassNode) {
         if (!ClassType.isFinal(classType)) {
             return;
