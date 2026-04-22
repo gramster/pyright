@@ -363,6 +363,7 @@ import {
     requiresTypeArgs,
     selfSpecializeClass,
     simplifyFunctionToParamSpec,
+    someSubtypes,
     sortTypes,
     specializeForBaseClass,
     specializeTupleClass,
@@ -5655,6 +5656,91 @@ export function createTypeEvaluator(
             { method: 'get' },
             flags | EvalFlags.NoSpecialize
         );
+
+        // Fix for Sentinel narrowing regression in dataclass fields.
+        //
+        // Root cause: When getEffectiveTypeOfSymbolForUsage evaluates a dataclass field symbol,
+        // it should use the declared type annotation (per the hasTypedDeclarations contract at L23136).
+        // However, the effective type incorrectly contains Unknown instead of the Sentinel type.
+        // The underlying issue is that inferParamTypeFromDefaultValue (L19529) creates Sentinel|Unknown
+        // for unannotated parameters, and this inferred type somehow leaks into the field's effective
+        // type despite the field having an explicit type annotation. The exact leakage mechanism
+        // remains untraced, but may involve synthesized types, caching, or symbol resolution ordering.
+        //
+        // This consumption-site fix surgically replaces Unknown subtypes with the correct Sentinel
+        // types from the declared annotation, avoiding modification of shared type resolution
+        // infrastructure while preserving any legitimate narrowing from getTypeOfMemberAccessWithBaseType.
+        //
+        // Scope: ClassType.isDataClass covers @dataclass and @dataclass_transform classes. Other
+        // synthesized patterns with sentinel defaults would be separate issues if affected.
+        //
+        // TODO: Investigate root cause to potentially fix at the source (synthesizeDataClassMethods
+        // or getEffectiveTypeOfSymbol) rather than patching at consumption site.
+        if (
+            isClassInstance(baseTypeResult.type) &&
+            ClassType.isDataClass(baseTypeResult.type) &&
+            !typeResult.isIncomplete
+        ) {
+            if (typeResult.type && isUnion(typeResult.type)) {
+                const memberName = node.d.member.d.value;
+                // Note: lookUpObjectMember and getDeclaredTypeOfSymbol repeat work done inside
+                // getTypeOfMemberAccessWithBaseType, but both are cached so runtime cost is low.
+                // This duplication is intentional for code clarity at the consumption site.
+                const memberInfo = lookUpObjectMember(baseTypeResult.type, memberName);
+                
+                if (memberInfo && memberInfo.isInstanceMember && isInstantiableClass(memberInfo.classType)) {
+                    const declaredTypeInfo = getDeclaredTypeOfSymbol(memberInfo.symbol);
+                    const declaredType = declaredTypeInfo.type;
+                    
+                    if (declaredType && isUnion(declaredType)) {
+                        // Check if we need to fix Unknown contamination
+                        const hasUnknown = someSubtypes(typeResult.type, (subtype) => isUnknown(subtype));
+                        
+                        if (hasUnknown) {
+                            // Specialize the declared type for generic dataclasses (e.g., T|MISSING → int|MISSING)
+                            const specializedDeclaredType = partiallySpecializeType(
+                                declaredType,
+                                memberInfo.classType,
+                                getTypeClassType(),
+                                /* selfClass */ undefined
+                            );
+                            
+                            // Collect Sentinel subtypes from the specialized declared type
+                            const sentinelSubtypes: Type[] = [];
+                            doForEachSubtype(specializedDeclaredType, (subtype) => {
+                                if (isSentinelLiteral(subtype)) {
+                                    sentinelSubtypes.push(subtype);
+                                }
+                            });
+                            
+                            // Only replace Unknown if the declared type doesn't legitimately contain Unknown
+                            // (to avoid hiding real type resolution problems like unresolved imports)
+                            const declaredHasUnknown = someSubtypes(specializedDeclaredType, (subtype) => isUnknown(subtype));
+                            
+                            if (sentinelSubtypes.length > 0 && !declaredHasUnknown) {
+                                // Filter out all Unknown subtypes and append sentinels once to avoid N×M expansion
+                                const fixedSubtypes: Type[] = [];
+                                let foundUnknown = false;
+                                
+                                doForEachSubtype(typeResult.type, (subtype) => {
+                                    if (isUnknown(subtype)) {
+                                        foundUnknown = true;
+                                    } else {
+                                        fixedSubtypes.push(subtype);
+                                    }
+                                });
+                                
+                                if (foundUnknown) {
+                                    // Append all sentinels once
+                                    sentinelSubtypes.forEach((sentinel) => fixedSubtypes.push(sentinel));
+                                    typeResult.type = combineTypes(fixedSubtypes);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         if (isCodeFlowSupportedForReference(node)) {
             // Before performing code flow analysis, update the cache to prevent recursion.
