@@ -1267,7 +1267,7 @@ export namespace ClassType {
     }
 
     export function getDisjointBase(classType: ClassType) {
-        return ClassType.isDisjointBase(classType) ? classType : classType.shared.disjointBase;
+        return classType.shared.disjointBase;
     }
 
     export function isProtocolClass(classType: ClassType) {

@@ -37,7 +37,7 @@ test('CircularBaseClass', () => {
 test('DisjointBase1', () => {
     const analysisResults = TestUtils.typeAnalyzeSampleFiles(['disjointBase1.py']);
 
-    TestUtils.validateResults(analysisResults, 4);
+    TestUtils.validateResults(analysisResults, 5);
 });
 
 test('Private1', () => {

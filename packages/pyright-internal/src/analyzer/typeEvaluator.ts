@@ -18367,12 +18367,6 @@ export function createTypeEvaluator(
 
     function computeDisjointBaseInfo(classType: ClassType) {
         classType.shared.isDisjointBase = ClassType.isDisjointBase(classType);
-
-        if (classType.shared.isDisjointBase) {
-            classType.shared.disjointBase = classType;
-            return;
-        }
-
         const candidates: ClassType[] = [];
         for (const baseClass of classType.shared.baseClasses) {
             if (!isInstantiableClass(baseClass) || isAnyOrUnknown(baseClass)) {
@@ -18388,25 +18382,32 @@ export function createTypeEvaluator(
             }
         }
 
+        let resolvedCandidate: ClassType | undefined;
         if (candidates.length === 1) {
-            classType.shared.disjointBase = candidates[0];
-            return;
+            resolvedCandidate = candidates[0];
         }
 
-        for (const candidate of candidates) {
-            if (
-                candidates.every(
-                    (otherCandidate) =>
-                        ClassType.isSameGenericClass(candidate, otherCandidate) ||
-                        derivesFromClassRecursive(candidate, otherCandidate, /* ignoreUnknown */ true)
-                )
-            ) {
-                classType.shared.disjointBase = candidate;
-                return;
+        if (!resolvedCandidate) {
+            for (const candidate of candidates) {
+                if (
+                    candidates.every(
+                        (otherCandidate) =>
+                            ClassType.isSameGenericClass(candidate, otherCandidate) ||
+                            derivesFromClassRecursive(candidate, otherCandidate, /* ignoreUnknown */ true)
+                    )
+                ) {
+                    resolvedCandidate = candidate;
+                    break;
+                }
             }
         }
 
-        classType.shared.disjointBase = undefined;
+        if (candidates.length > 1 && !resolvedCandidate) {
+            classType.shared.disjointBase = undefined;
+            return;
+        }
+
+        classType.shared.disjointBase = classType.shared.isDisjointBase ? classType : resolvedCandidate;
     }
 
     function buildTypeParamsFromTypeArgs(classType: ClassType): TypeVarType[] {

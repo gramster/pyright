@@ -31,6 +31,10 @@ class InvalidDisjointBase(Base1, Base2):
     pass
 
 
+class SneakyChild(Base1, Base2):
+    __slots__ = ('x',)
+
+
 @disjoint_base
 class NamedTupleOk(NamedTuple):
     field: int
