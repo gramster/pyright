@@ -711,6 +711,9 @@ export interface ClassDetailsShared {
     typedDictExtraItemsExpr?: ExpressionNode | undefined;
     localSlotsNames?: string[];
     disjointBase?: ClassType | undefined;
+
+    // Indicates that this class inherited multiple disjoint-base candidates
+    // that could not be resolved to a single dominant candidate.
     hasConflictingDisjointBases: boolean;
 
     // If the class is decorated with a @deprecated decorator, this
@@ -1263,7 +1266,7 @@ export namespace ClassType {
     export function isDisjointBase(classType: ClassType) {
         return (
             !!(classType.shared.flags & ClassTypeFlags.DisjointBase) ||
-            // object is intentionally treated as an implicit disjoint base.
+            // Object is intentionally treated as an implicit disjoint base.
             ClassType.isBuiltIn(classType, 'object') ||
             !!classType.shared.localSlotsNames?.length ||
             ClassType.isDataClassGenerateSlots(classType)
