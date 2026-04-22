@@ -453,8 +453,7 @@ export namespace Localizer {
         export const duplicateStarStarPattern = () => getRawString('Diagnostic.duplicateStarStarPattern');
         export const duplicatePositionOnly = () => getRawString('Diagnostic.duplicatePositionOnly');
         export const duplicateUnpack = () => getRawString('Diagnostic.duplicateUnpack');
-        export const disjointBaseClassDecoratorOnly = () =>
-            getRawString('Diagnostic.disjointBaseClassDecoratorOnly');
+        export const disjointBaseClassDecoratorOnly = () => getRawString('Diagnostic.disjointBaseClassDecoratorOnly');
         export const ellipsisAfterUnpacked = () => getRawString('Diagnostic.ellipsisAfterUnpacked');
         export const ellipsisContext = () => getRawString('Diagnostic.ellipsisContext');
         export const ellipsisSecondArg = () => getRawString('Diagnostic.ellipsisSecondArg');

@@ -5162,7 +5162,24 @@ export class Checker extends ParseTreeWalker {
             return;
         }
 
-        if (!ClassType.getDisjointBase(classType)) {
+        const disjointBaseCandidates: ClassType[] = [];
+        for (const baseClass of classType.shared.baseClasses) {
+            if (!isInstantiableClass(baseClass)) {
+                continue;
+            }
+
+            const candidate = ClassType.isDisjointBase(baseClass) ? baseClass : ClassType.getDisjointBase(baseClass);
+            if (
+                candidate &&
+                !disjointBaseCandidates.some((existingCandidate) =>
+                    ClassType.isSameGenericClass(existingCandidate, candidate)
+                )
+            ) {
+                disjointBaseCandidates.push(candidate);
+            }
+        }
+
+        if (disjointBaseCandidates.length >= 2 && !ClassType.getDisjointBase(classType)) {
             this._evaluator.addDiagnostic(
                 DiagnosticRule.reportGeneralTypeIssues,
                 LocMessage.classDisjointBaseInvalid().format({ type: classType.shared.name }),

@@ -1258,11 +1258,16 @@ export namespace ClassType {
     }
 
     export function isDisjointBase(classType: ClassType) {
-        return classType.shared.isDisjointBase;
+        return (
+            classType.shared.isDisjointBase ||
+            ClassType.isBuiltIn(classType, 'object') ||
+            !!classType.shared.localSlotsNames?.length ||
+            ClassType.isDataClassGenerateSlots(classType)
+        );
     }
 
     export function getDisjointBase(classType: ClassType) {
-        return classType.shared.disjointBase;
+        return ClassType.isDisjointBase(classType) ? classType : classType.shared.disjointBase;
     }
 
     export function isProtocolClass(classType: ClassType) {
