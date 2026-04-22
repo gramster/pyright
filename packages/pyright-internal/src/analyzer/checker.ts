@@ -5168,7 +5168,7 @@ export class Checker extends ParseTreeWalker {
                 continue;
             }
 
-            const candidate = ClassType.isDisjointBase(baseClass) ? baseClass : ClassType.getDisjointBase(baseClass);
+            const candidate = ClassType.getDisjointBase(baseClass);
             if (
                 candidate &&
                 !disjointBaseCandidates.some((existingCandidate) =>

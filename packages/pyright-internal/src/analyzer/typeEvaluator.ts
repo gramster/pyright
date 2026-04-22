@@ -18366,11 +18366,7 @@ export function createTypeEvaluator(
     }
 
     function computeDisjointBaseInfo(classType: ClassType) {
-        classType.shared.isDisjointBase =
-            classType.shared.isDisjointBase ||
-            ClassType.isBuiltIn(classType, 'object') ||
-            !!classType.shared.localSlotsNames?.length ||
-            ClassType.isDataClassGenerateSlots(classType);
+        classType.shared.isDisjointBase = ClassType.isDisjointBase(classType);
 
         if (classType.shared.isDisjointBase) {
             classType.shared.disjointBase = classType;
@@ -18383,7 +18379,7 @@ export function createTypeEvaluator(
                 continue;
             }
 
-            const candidate = ClassType.isDisjointBase(baseClass) ? baseClass : ClassType.getDisjointBase(baseClass);
+            const candidate = ClassType.getDisjointBase(baseClass);
             if (
                 candidate &&
                 !candidates.some((existingCandidate) => ClassType.isSameGenericClass(existingCandidate, candidate))
