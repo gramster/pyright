@@ -31,6 +31,8 @@ class InvalidDisjointBase(Base1, Base2):
     pass
 
 
+# This should generate an error because conflicting inherited disjoint bases
+# are still invalid even if this class is intrinsically disjoint via __slots__.
 class SneakyChild(Base1, Base2):
     __slots__ = ('x',)
 
