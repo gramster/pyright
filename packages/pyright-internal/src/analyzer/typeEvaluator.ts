@@ -14274,7 +14274,7 @@ export function createTypeEvaluator(
 
         if (keyTypes.length > 0) {
             if (AnalyzerNodeInfo.getFileInfo(node).diagnosticRuleSet.strictDictionaryInference || hasExpectedType) {
-                keyType = combineTypes(keyTypes);
+                keyType = combineTypes(keyTypes, { maxSubtypeCount: maxSubtypesForInferredType });
             } else {
                 keyType = areTypesSame(keyTypes, { ignorePseudoGeneric: true }) ? keyTypes[0] : fallbackType;
             }
@@ -14289,7 +14289,7 @@ export function createTypeEvaluator(
         // be the same.
         if (valueTypes.length > 0) {
             if (AnalyzerNodeInfo.getFileInfo(node).diagnosticRuleSet.strictDictionaryInference || hasExpectedType) {
-                valueType = combineTypes(valueTypes);
+                valueType = combineTypes(valueTypes, { maxSubtypeCount: maxSubtypesForInferredType });
             } else {
                 valueType = areTypesSame(valueTypes, { ignorePseudoGeneric: true }) ? valueTypes[0] : fallbackType;
             }
@@ -14936,7 +14936,7 @@ export function createTypeEvaluator(
         }
 
         if (isNarrowable && entryTypes.length > 0) {
-            const combinedTypes = combineTypes(entryTypes);
+            const combinedTypes = combineTypes(entryTypes, { maxSubtypeCount: maxSubtypesForInferredType });
             return containsLiteralType(inferenceContext.expectedType)
                 ? combinedTypes
                 : stripLiteralValue(combinedTypes);
