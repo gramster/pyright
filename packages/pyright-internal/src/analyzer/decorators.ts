@@ -405,7 +405,7 @@ export function applyClassDecorator(
                     decoratorNode.d.expr
                 );
             } else {
-                originalClassType.shared.isDisjointBase = true;
+                originalClassType.shared.flags |= ClassTypeFlags.DisjointBase;
             }
 
             return inputClassType;

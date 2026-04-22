@@ -18366,7 +18366,7 @@ export function createTypeEvaluator(
     }
 
     function computeDisjointBaseInfo(classType: ClassType) {
-        classType.shared.isDisjointBase = ClassType.isDisjointBase(classType);
+        const isClassDisjointBase = ClassType.isDisjointBase(classType);
         const candidates: ClassType[] = [];
         for (const baseClass of classType.shared.baseClasses) {
             if (!isInstantiableClass(baseClass) || isAnyOrUnknown(baseClass)) {
@@ -18388,6 +18388,8 @@ export function createTypeEvaluator(
         }
 
         if (!resolvedCandidate) {
+            // Select the most-specific candidate: it must be a subclass of all
+            // other candidates, so it safely subsumes the entire candidate set.
             for (const candidate of candidates) {
                 if (
                     candidates.every(
@@ -18402,12 +18404,13 @@ export function createTypeEvaluator(
             }
         }
 
-        if (candidates.length > 1 && !resolvedCandidate) {
+        classType.shared.hasConflictingDisjointBases = candidates.length > 1 && !resolvedCandidate;
+        if (classType.shared.hasConflictingDisjointBases) {
             classType.shared.disjointBase = undefined;
             return;
         }
 
-        classType.shared.disjointBase = classType.shared.isDisjointBase ? classType : resolvedCandidate;
+        classType.shared.disjointBase = isClassDisjointBase ? classType : resolvedCandidate;
     }
 
     function buildTypeParamsFromTypeArgs(classType: ClassType): TypeVarType[] {

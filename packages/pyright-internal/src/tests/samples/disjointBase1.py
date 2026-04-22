@@ -4,16 +4,19 @@ from typing import NamedTuple, Protocol, TypedDict, disjoint_base
 
 @disjoint_base
 def bad_func() -> None:
+    # This should generate an error.
     pass
 
 
 @disjoint_base
 class BadProto(Protocol):
+    # This should generate an error.
     def method(self) -> None: ...
 
 
 @disjoint_base
 class BadTypedDict(TypedDict):
+    # This should generate an error.
     field: int
 
 
@@ -28,6 +31,7 @@ class Base2:
 
 
 class InvalidDisjointBase(Base1, Base2):
+    # This should generate an error.
     pass
 
 
@@ -56,4 +60,38 @@ class DerivedDisjointBase(Base1):
 
 
 class DerivedDisjointBaseChild(DerivedDisjointBase, Base1):
+    pass
+
+
+@disjoint_base
+class DiamondBase:
+    pass
+
+
+class DiamondLeft(DiamondBase):
+    pass
+
+
+class DiamondRight(DiamondBase):
+    pass
+
+
+class DiamondChild(DiamondLeft, DiamondRight):
+    pass
+
+
+class EmptySlotsBase:
+    __slots__ = ()
+
+
+class EmptySlotsNoConflict(EmptySlotsBase, Base1):
+    pass
+
+
+@dataclass
+class DataClassNoSlots:
+    field: int
+
+
+class DataClassNoSlotsNoConflict(DataClassNoSlots, Base1):
     pass

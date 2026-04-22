@@ -653,6 +653,9 @@ export const enum ClassTypeFlags {
     // Class is declared within a type stub file.
     DefinedInStub = 1 << 18,
 
+    // Decorated with @disjoint_base.
+    DisjointBase = 1 << 19,
+
     // Decorated with @type_check_only.
     TypeCheckOnly = 1 << 20,
 
@@ -707,8 +710,8 @@ export interface ClassDetailsShared {
     typedDictEntries?: TypedDictEntries | undefined;
     typedDictExtraItemsExpr?: ExpressionNode | undefined;
     localSlotsNames?: string[];
-    isDisjointBase: boolean;
     disjointBase?: ClassType | undefined;
+    hasConflictingDisjointBases: boolean;
 
     // If the class is decorated with a @deprecated decorator, this
     // string provides the message to be displayed when the class
@@ -880,8 +883,8 @@ export namespace ClassType {
                 fields: new Map<string, Symbol>(),
                 typeParams: [],
                 docString,
-                isDisjointBase: false,
                 disjointBase: undefined,
+                hasConflictingDisjointBases: false,
             },
             priv: {},
         };
@@ -1259,7 +1262,8 @@ export namespace ClassType {
 
     export function isDisjointBase(classType: ClassType) {
         return (
-            classType.shared.isDisjointBase ||
+            !!(classType.shared.flags & ClassTypeFlags.DisjointBase) ||
+            // object is intentionally treated as an implicit disjoint base.
             ClassType.isBuiltIn(classType, 'object') ||
             !!classType.shared.localSlotsNames?.length ||
             ClassType.isDataClassGenerateSlots(classType)
