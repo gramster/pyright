@@ -9,6 +9,8 @@
  */
 
 import { appendArray } from '../common/collectionUtils';
+import { DiagnosticRule } from '../common/diagnosticRules';
+import { LocMessage } from '../localization/localize';
 import { ArgCategory, CallNode, DecoratorNode, FunctionNode, ParamCategory, ParseNodeType } from '../parser/parseNodes';
 import { getDeclaration, getFileInfo } from './analyzerNodeInfo';
 import {
@@ -174,6 +176,15 @@ export function applyFunctionDecorator(
                 return inputFunctionType;
             }
         }
+    }
+
+    if (isFunction(decoratorType) && FunctionType.isBuiltIn(decoratorType, 'disjoint_base')) {
+        evaluator.addDiagnostic(
+            DiagnosticRule.reportGeneralTypeIssues,
+            LocMessage.disjointBaseClassDecoratorOnly(),
+            decoratorNode.d.expr
+        );
+        return inputFunctionType;
     }
 
     // Clear the PartiallyEvaluated flag in the input if it's set so
@@ -383,6 +394,20 @@ export function applyClassDecorator(
             // Don't call getTypeOfDecorator for runtime_checkable. It appears
             // frequently in stubs, and it's a waste of time to validate its
             // parameters.
+            return inputClassType;
+        }
+
+        if (FunctionType.isBuiltIn(decoratorType, 'disjoint_base')) {
+            if (ClassType.isProtocolClass(originalClassType) || ClassType.isTypedDictClass(originalClassType)) {
+                evaluator.addDiagnostic(
+                    DiagnosticRule.reportGeneralTypeIssues,
+                    LocMessage.disjointBaseClassDecoratorOnly(),
+                    decoratorNode.d.expr
+                );
+            } else {
+                originalClassType.shared.flags |= ClassTypeFlags.DisjointBase;
+            }
+
             return inputClassType;
         }
 

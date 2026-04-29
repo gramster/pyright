@@ -653,6 +653,9 @@ export const enum ClassTypeFlags {
     // Class is declared within a type stub file.
     DefinedInStub = 1 << 18,
 
+    // Decorated with @disjoint_base.
+    DisjointBase = 1 << 19,
+
     // Decorated with @type_check_only.
     TypeCheckOnly = 1 << 20,
 
@@ -707,6 +710,11 @@ export interface ClassDetailsShared {
     typedDictEntries?: TypedDictEntries | undefined;
     typedDictExtraItemsExpr?: ExpressionNode | undefined;
     localSlotsNames?: string[];
+    disjointBase?: ClassType | undefined;
+
+    // Indicates that this class inherited multiple disjoint-base candidates
+    // that could not be resolved to a single dominant candidate.
+    hasConflictingDisjointBases: boolean;
 
     // If the class is decorated with a @deprecated decorator, this
     // string provides the message to be displayed when the class
@@ -878,6 +886,8 @@ export namespace ClassType {
                 fields: new Map<string, Symbol>(),
                 typeParams: [],
                 docString,
+                disjointBase: undefined,
+                hasConflictingDisjointBases: false,
             },
             priv: {},
         };
@@ -1251,6 +1261,20 @@ export namespace ClassType {
 
     export function isFinal(classType: ClassType) {
         return !!(classType.shared.flags & ClassTypeFlags.Final);
+    }
+
+    export function isDisjointBase(classType: ClassType) {
+        return (
+            !!(classType.shared.flags & ClassTypeFlags.DisjointBase) ||
+            // Object is intentionally treated as an implicit disjoint base.
+            ClassType.isBuiltIn(classType, 'object') ||
+            !!classType.shared.localSlotsNames?.length ||
+            ClassType.isDataClassGenerateSlots(classType)
+        );
+    }
+
+    export function getDisjointBase(classType: ClassType) {
+        return classType.shared.disjointBase;
     }
 
     export function isProtocolClass(classType: ClassType) {

@@ -301,6 +301,8 @@ export namespace Localizer {
         export const classDecoratorTypeUnknown = () => getRawString('Diagnostic.classDecoratorTypeUnknown');
         export const classDefinitionCycle = () =>
             new ParameterizedString<{ name: string }>(getRawString('Diagnostic.classDefinitionCycle'));
+        export const classDisjointBaseInvalid = () =>
+            new ParameterizedString<{ type: string }>(getRawString('Diagnostic.classDisjointBaseInvalid'));
         export const classGetItemClsParam = () => getRawString('Diagnostic.classGetItemClsParam');
         export const classMethodClsParam = () => getRawString('Diagnostic.classMethodClsParam');
         export const classNotRuntimeSubscriptable = () =>
@@ -431,6 +433,7 @@ export namespace Localizer {
         export const dictKeyValuePairs = () => getRawString('Diagnostic.dictKeyValuePairs');
         export const dictUnpackIsNotMapping = () => getRawString('Diagnostic.dictUnpackIsNotMapping');
         export const delTargetExpr = () => getRawString('Diagnostic.delTargetExpr');
+        export const disjointBaseClassDecoratorOnly = () => getRawString('Diagnostic.disjointBaseClassDecoratorOnly');
         export const dunderAllSymbolNotPresent = () =>
             new ParameterizedString<{ name: string }>(getRawString('Diagnostic.dunderAllSymbolNotPresent'));
         export const duplicateArgsParam = () => getRawString('Diagnostic.duplicateArgsParam');

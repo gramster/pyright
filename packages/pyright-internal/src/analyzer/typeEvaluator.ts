@@ -18231,6 +18231,8 @@ export function createTypeEvaluator(
                 );
             }
 
+            computeDisjointBaseInfo(classType);
+
             // Run any deferred class completions that depend on this class.
             runDeferredClassCompletions(classType);
 
@@ -18361,6 +18363,54 @@ export function createTypeEvaluator(
 
             return { classType, decoratedType };
         });
+    }
+
+    function computeDisjointBaseInfo(classType: ClassType) {
+        const isClassDisjointBase = ClassType.isDisjointBase(classType);
+        const candidates: ClassType[] = [];
+        for (const baseClass of classType.shared.baseClasses) {
+            if (!isInstantiableClass(baseClass) || isAnyOrUnknown(baseClass)) {
+                continue;
+            }
+
+            const candidate = ClassType.getDisjointBase(baseClass);
+            if (
+                candidate &&
+                !candidates.some((existingCandidate) => ClassType.isSameGenericClass(existingCandidate, candidate))
+            ) {
+                candidates.push(candidate);
+            }
+        }
+
+        let resolvedCandidate: ClassType | undefined;
+        if (candidates.length === 1) {
+            resolvedCandidate = candidates[0];
+        }
+
+        if (!resolvedCandidate) {
+            // Select the most-specific candidate: it must be a subclass of all
+            // other candidates, so it safely subsumes the entire candidate set.
+            for (const candidate of candidates) {
+                if (
+                    candidates.every(
+                        (otherCandidate) =>
+                            ClassType.isSameGenericClass(candidate, otherCandidate) ||
+                            derivesFromClassRecursive(candidate, otherCandidate, /* ignoreUnknown */ true)
+                    )
+                ) {
+                    resolvedCandidate = candidate;
+                    break;
+                }
+            }
+        }
+
+        classType.shared.hasConflictingDisjointBases = candidates.length > 1 && !resolvedCandidate;
+        if (classType.shared.hasConflictingDisjointBases) {
+            classType.shared.disjointBase = undefined;
+            return;
+        }
+
+        classType.shared.disjointBase = isClassDisjointBase ? classType : resolvedCandidate;
     }
 
     function buildTypeParamsFromTypeArgs(classType: ClassType): TypeVarType[] {

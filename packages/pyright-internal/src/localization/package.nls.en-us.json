@@ -140,6 +140,7 @@
         "classAlreadySpecialized": "Type \"{type}\" is already specialized",
         "classDecoratorTypeUnknown": "Untyped class decorator obscures type of class; ignoring decorator",
         "classDefinitionCycle": "Class definition for \"{name}\" depends on itself",
+        "classDisjointBaseInvalid": "Class \"{type}\" does not have a valid disjoint base",
         "classGetItemClsParam": {
             "message": "__class_getitem__ override should take a \"cls\" parameter",
             "comment": "{Locked='__class_getitem__','cls'}"
@@ -301,6 +302,10 @@
         "dictInAnnotation": "Dictionary expression not allowed in type expression",
         "dictKeyValuePairs": "Dictionary entries must contain key/value pairs",
         "dictUnpackIsNotMapping": "Expected mapping for dictionary unpack operator",
+        "disjointBaseClassDecoratorOnly": {
+            "message": "Decorator \"@disjoint_base\" can be applied only to nominal class declarations",
+            "comment": "{Locked='@disjoint_base'}"
+        },
         "dunderAllSymbolNotPresent": {
             "message": "\"{name}\" is specified in __all__ but is not present in module",
             "comment": "{Locked='__all__'}"
