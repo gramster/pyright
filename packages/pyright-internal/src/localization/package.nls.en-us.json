@@ -139,8 +139,8 @@
         "casePatternIsIrrefutable": "Irrefutable pattern is allowed only for the last case statement",
         "classAlreadySpecialized": "Type \"{type}\" is already specialized",
         "classDecoratorTypeUnknown": "Untyped class decorator obscures type of class; ignoring decorator",
-        "classDisjointBaseInvalid": "Class \"{type}\" does not have a valid disjoint base",
         "classDefinitionCycle": "Class definition for \"{name}\" depends on itself",
+        "classDisjointBaseInvalid": "Class \"{type}\" does not have a valid disjoint base",
         "classGetItemClsParam": {
             "message": "__class_getitem__ override should take a \"cls\" parameter",
             "comment": "{Locked='__class_getitem__','cls'}"
